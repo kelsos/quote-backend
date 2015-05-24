@@ -1,5 +1,5 @@
 <?php
-namespace Error;
+namespace QuoteEnd;
 
 
 class Error

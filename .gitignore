@@ -4,3 +4,4 @@ vendor/
 .vagrant
 
 generated-conf
+generated-sql
