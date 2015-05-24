@@ -1,0 +1,6 @@
+composer.phar
+vendor/
+.idea
+.vagrant
+
+generated-conf

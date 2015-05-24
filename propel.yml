@@ -1,0 +1,10 @@
+propel:
+    database:
+        connections:
+            default:
+                adapter: mysql
+                dsn: mysql:host=localhost;dbname=quote
+                user: homestead
+                password: secret
+                settings:
+                    charset: utf8

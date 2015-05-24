@@ -1,0 +1,12 @@
+{
+  "require": {
+    "slim/slim": "^2.6",
+    "propel/propel": "~2.0@dev"
+  },
+  "autoload": {
+    "classmap": [
+      "app/model/",
+      "app/helpers/"
+    ]
+  }
+}
