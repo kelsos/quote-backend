@@ -59,6 +59,18 @@
         <column name="published" type="timestamp" required="false"/>
     </table>
 
+    <table name="user" phpName="User">
+      <column name="id" type="integer" required="true" primaryKey="true" autoIncrement="true"/>
+      <column name="username" type="varchar" size="255" required="true"/>
+      <column name="password" type="varchar" size="255" required="true"/>
+      <column name="approved" type="boolean"/>
+      <column name="admin" type="boolean" />
+
+      <unique>
+        <unique-column name="username"/>
+      </unique>
+    </table>
+
     <!--
         When you're done with editing, open a terminal and run
             `$ cd propel`
