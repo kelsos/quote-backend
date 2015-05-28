@@ -11,11 +11,16 @@ use Quote\UserQuery;
 use QuoteEnd\Error;
 use QuoteEnd\Helpers;
 use Slim\Slim;
+use Symfony\Component\Yaml\Yaml;
 
 $app = new Slim();
+$config = Yaml::parse(file_get_contents("../config.yaml"));
 
+$secret = $config['secret'];
 
-$app->get('/quote/:id', function ($id)  use ($app) {
+$token = $app->request->post("token");
+
+$app->get('/quote/:id', function ($id) use ($app) {
   $quoteQuery = new QuoteQuery();
   $quote = $quoteQuery->findPk($id);
 
@@ -33,17 +38,14 @@ $app->get('/quote', function () use ($app) {
   $app->response()->setBody($quotes->toJSON());
 });
 
-$app->post('/quote', function() use ($app) {
+$app->post('/quote', function () use ($app) {
 
   $request = $app->request;
   $title = $request->post("title");
   $quote_body = $request->post("quote");
 
   if (Helpers::isNullOrEmpty($title) || Helpers::isNullOrEmpty($quote_body)) {
-    $error = new Error();
-    $error->setStatus(400);
-    $error->setDescription("Invalid data");
-    $app->halt($error->getStatus(), json_encode($error));
+    Helpers::error(400, "Invalid data", $app);
   }
 
   date_default_timezone_set("UTC");
@@ -63,41 +65,29 @@ $app->post('/quote', function() use ($app) {
 
 });
 
-$app->post("/register", function() use ($app) {
+$app->post("/register", function () use ($app) {
   $request = $app->request;
   $username = $request->post("username");
   $password = $request->post("password");
 
   if (Helpers::isNullOrEmpty($username) || Helpers::isNullOrEmpty($password)) {
-    $error = new Error();
-    $error->setStatus(400);
-    $error->setDescription("Password / Username can't be empty");
-    $app->halt($error->getStatus(), json_encode($error));
+    Helpers::error(400, "Password / Username can't be empty", $app);
   }
 
   if (!filter_var($username, FILTER_VALIDATE_EMAIL)) {
-    $error = new Error();
-    $error->setStatus(400);
-    $error->setDescription("Username must be a valid e-mail");
-    $app->halt($error->getStatus(), json_encode($error));
+    Helpers::error(400, "Username must be a valid e-mail", $app);
   }
 
   if (strlen($password) < PASS_LENGTH) {
-    $error = new Error();
-    $error->setStatus(400);
-    $error->setDescription("Password must be at least ". PASS_LENGTH . " characters long");
-    $app->halt($error->getStatus(), json_encode($error));
+    Helpers::error(400, "Password must be at least " . PASS_LENGTH . " characters long", $app);
   }
 
   $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-  $user = UserQuery::create()->findByUsername($username);
+  $user = UserQuery::create()->findByUsername($username)->getFirst();
 
   if ($user != null) {
-    $error = new Error();
-    $error->setStatus(409);
-    $error->setDescription("User already exists");
-    $app->halt($error->getStatus(), json_encode($error));
+    Helpers::error(409, "User already exists", $app);
   }
 
   $user = new User();
@@ -105,40 +95,53 @@ $app->post("/register", function() use ($app) {
   $user->setPassword($password_hash);
   $user->setApproved(false);
   $user->setAdmin(false);
-  $user->save();
+  $rowsAffected = $user->save();
+
+  $result = [
+    "success" => $rowsAffected > 0
+  ];
+
+  $app->response()->setBody(json_encode($result));
+
 });
 
-$app->post("/login", function() use ($app) {
+$app->post("/login", function () use ($app, $secret) {
   $request = $app->request;
   $username = $request->post("username");
   $password = $request->post("password");
 
   if (Helpers::isNullOrEmpty($username) || Helpers::isNullOrEmpty($password)) {
-    $error = new Error();
-    $error->setStatus(400);
-    $error->setDescription("Password / Username can't be empty");
-    $app->halt($error->getStatus(), json_encode($error));
+    Helpers::error(400, "Password / Username can't be empty", $app);
   }
 
   $user = UserQuery::create()->findByUsername($username)->getFirst();
 
   if ($user == null) {
-    $error = new Error();
-    $error->setStatus(400);
-    $error->setDescription("Invalid username or password");
-    $app->halt($error->getStatus(), json_encode($error));
+    Helpers::error(400, "Invalid username or password", $app);
   }
 
-  $password_hash = password_hash($password, PASSWORD_DEFAULT);
-
-  if ($user->getPassword() != $password_hash) {
-    $error = new Error();
-    $error->setStatus(400);
-    $error->setDescription("Invalid username or password");
-    $app->halt($error->getStatus(), json_encode($error));
+  if (!$user->isApproved()) {
+    Helpers::error(400, "User has not yet been approved by a system administrator", $app);
   }
 
+  if (!password_verify($password, $user->getPassword())) {
+    Helpers::error(400, "Invalid username or password", $app);
+  }
 
+  $token = array(
+    "iat" => time(),
+    "nbf" => time(),
+    "exp" => time() + 172800,
+    "id" => $user->getId()
+  );
+
+  $jwt = JWT::encode($token, $secret);
+
+  $result = [
+    "token" => $jwt
+  ];
+
+  $app->response()->setBody(json_encode($result));
 });
 
 $app->response->header("Content-Type", "application/json");

@@ -5,3 +5,4 @@ vendor/
 
 generated-conf
 generated-sql
+config.yaml
