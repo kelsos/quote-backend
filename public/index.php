@@ -8,7 +8,6 @@ use Quote\Quote;
 use Quote\QuoteQuery;
 use Quote\User;
 use Quote\UserQuery;
-use QuoteEnd\Error;
 use QuoteEnd\Helpers;
 use Slim\Slim;
 use Symfony\Component\Yaml\Yaml;
@@ -18,27 +17,32 @@ $config = Yaml::parse(file_get_contents("../config.yaml"));
 
 $secret = $config['secret'];
 
-$token = $app->request->post("token");
+$request = $app->request;
+$token = $request->post("token") == null
+  ? $app->request->get("token")
+  : $app->request->post("token");
 
-$app->get('/quote/:id', function ($id) use ($app) {
+$app->get('/quote/:id', function ($id) use ($app, $token, $secret) {
+  Helpers::validateToken($token, $secret, $app);
   $quoteQuery = new QuoteQuery();
   $quote = $quoteQuery->findPk($id);
 
   if ($quote == null) {
-    $app->response->setStatus(404);
-    $error = new Error();
-    $app->halt($error->getStatus(), json_encode($error));
+    Helpers::error(404, "Quote does not exist yes!", $app);
   }
 
   $app->response()->setBody($quote->toJSON());
 });
 
-$app->get('/quote', function () use ($app) {
+$app->get('/quote', function () use ($app, $token, $secret) {
+  Helpers::validateToken($token, $secret, $app);
+
   $quotes = QuoteQuery::create()->orderById()->find();
   $app->response()->setBody($quotes->toJSON());
 });
 
-$app->post('/quote', function () use ($app) {
+$app->post('/quote', function () use ($app, $token, $secret) {
+  Helpers::validateToken($token, $secret, $app);
 
   $request = $app->request;
   $title = $request->post("title");
