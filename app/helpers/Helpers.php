@@ -8,6 +8,7 @@ use JWT;
 use SignatureInvalidException;
 use Slim\Slim;
 use Symfony\Component\Console\Helper\Helper;
+use UnexpectedValueException;
 
 class Helpers
 {
@@ -45,15 +46,43 @@ class Helpers
    * @param String $secret The application secret used to verify the token.
    * @param Slim $app A reference to the Slim application.
    *
+   * @return null|object Returns the decoded array included in the token or null.
    */
   static function validateToken($token, $secret, $app)
   {
+    if ($token == null) {
+      Helpers::error(400, "Missing token", $app);
+    }
     try {
-      JWT::decode($token, $secret, array('HS256'));
+      $decode = JWT::decode($token, $secret, array('HS256'));
+      return $decode;
     } catch (SignatureInvalidException $ex) {
       Helpers::error(403, "Invalid token", $app);
     } catch (ExpiredException $ex) {
       Helpers::error(403, "Expired token", $app);
+    } catch (UnexpectedValueException $ex) {
+      Helpers::error(400, "Something wrong will trying to decode the token", $app);
     }
+    return null;
+  }
+
+  /**
+   * Tries to extract the user token for any available source,
+   * Post param, Query string, or Json body.
+   * @param Slim $app
+   * @return String|null
+   */
+  static function getUserToken($app)
+  {
+    $request = $app->request();
+    $token = $request->post("token") == null
+      ? $app->request->get("token")
+      : $app->request->post("token");
+
+    if ($token == null && strcmp($request->getContentType(), 'application/json') == 0) {
+      $body = json_decode($request->getBody());
+      $token = $body->{'token'};
+    }
+    return $token;
   }
 }

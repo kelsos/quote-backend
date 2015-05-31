@@ -9,6 +9,7 @@ use Quote\QuoteQuery;
 use Quote\User;
 use Quote\UserQuery;
 use QuoteEnd\Helpers;
+use Propel\Runtime\Map\TableMap;
 use Slim\Slim;
 use Symfony\Component\Yaml\Yaml;
 
@@ -16,11 +17,20 @@ $app = new Slim();
 $config = Yaml::parse(file_get_contents("../config.yaml"));
 
 $secret = $config['secret'];
+$mail = $config['mail'];
 
 $request = $app->request;
-$token = $request->post("token") == null
-  ? $app->request->get("token")
-  : $app->request->post("token");
+$token = Helpers::getUserToken($app);
+
+$app->get('/', function () use ($app) {
+
+  $response = [
+    'application' => 'Quote Backend',
+    'version' => 1.0
+  ];
+
+  $app->response()->setBody(json_encode($response));
+});
 
 $app->get('/quote/:id', function ($id) use ($app, $token, $secret) {
   Helpers::validateToken($token, $secret, $app);
@@ -31,14 +41,13 @@ $app->get('/quote/:id', function ($id) use ($app, $token, $secret) {
     Helpers::error(404, "Quote does not exist yes!", $app);
   }
 
-  $app->response()->setBody($quote->toJSON());
+  $app->response()->setBody(json_encode($quote->toArray(TableMap::TYPE_FIELDNAME)));
 });
 
 $app->get('/quote', function () use ($app, $token, $secret) {
   Helpers::validateToken($token, $secret, $app);
-
-  $quotes = QuoteQuery::create()->orderById()->find();
-  $app->response()->setBody($quotes->toJSON());
+  $quotes = QuoteQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
+  $app->response()->setBody(json_encode($quotes));
 });
 
 $app->post('/quote', function () use ($app, $token, $secret) {
@@ -69,7 +78,7 @@ $app->post('/quote', function () use ($app, $token, $secret) {
 
 });
 
-$app->post("/register", function () use ($app) {
+$app->post("/register", function () use ($app, $mail) {
   $request = $app->request;
   $username = $request->post("username");
   $password = $request->post("password");
@@ -104,6 +113,14 @@ $app->post("/register", function () use ($app) {
   $result = [
     "success" => $rowsAffected > 0
   ];
+
+  if ($rowsAffected > 0) {
+    try {
+      mail($mail, "New user at Quote", "A new user (" . $username . ") has been registered and awaiting approval");
+    } catch (Exception $ex) {
+
+    }
+  }
 
   $app->response()->setBody(json_encode($result));
 
@@ -146,6 +163,70 @@ $app->post("/login", function () use ($app, $secret) {
   ];
 
   $app->response()->setBody(json_encode($result));
+});
+
+$app->get('/admin/users', function () use ($app, $token, $secret) {
+  $token_content = Helpers::validateToken($token, $secret, $app);
+  $user_id = $token_content->{'id'};
+  $active_user = UserQuery::create()->findOneById($user_id);
+
+  if (!$active_user->isAdmin()) {
+    Helpers::error(403, "You have not administrative access.", $app);
+  }
+
+  $users = UserQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
+
+  foreach ($users as &$user) {
+    unset($user['password']);
+  }
+
+  $app->response()->setBody(json_encode($users));
+});
+
+$app->post('/admin/users/', function () use ($app, $token, $secret) {
+  $token_content = Helpers::validateToken($token, $secret, $app);
+  $user_id = $token_content->{'id'};
+  $active_user = UserQuery::create()->findOneById($user_id);
+
+  if (!$active_user->isAdmin()) {
+    Helpers::error(403, "You have not administrative access.", $app);
+  }
+
+  $contentType = $app->request()->getContentType();
+
+  if (strcmp($contentType, 'application/json') != 0) {
+    Helpers::error(400, "Invalid request body", $app);
+  }
+
+  $body = json_decode($app->request()->getBody());
+
+  $user_id = $body->{'id'};
+  $approved = boolval($app->request()->post('approved'));
+
+  if (!is_int($user_id) || $user_id <= 0 || !is_bool($approved)) {
+    Helpers::error(400, "Missing or invalid parameters", $app);
+  }
+
+  $user = UserQuery::create()->findOneById($user_id);
+
+  if ($user == null) {
+    Helpers::error(404, "Invalid user", $app);
+  }
+
+  $user->setApproved($approved);
+  $rowsAffected = $user->save();
+
+  $app->response()->setBody(json_encode([
+    'success' => $rowsAffected > 0
+  ]));
+});
+
+$app->notFound(function () use ($app) {
+  Helpers::error(404, "Invalid Path", $app);
+});
+
+$app->error(function (\Exception $e) use ($app) {
+  Helpers::error(500, "Internal server error", $app);
 });
 
 $app->response->header("Content-Type", "application/json");

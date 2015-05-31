@@ -3,7 +3,8 @@
     "slim/slim": "^2.6",
     "propel/propel": "~2.0@dev",
     "firebase/php-jwt": "^2.1",
-    "symfony/yaml": "2.6.8"
+    "symfony/yaml": "2.6.8",
+    "ircmaxell/password-compat": "1.0.4"
   },
   "autoload": {
     "classmap": [
