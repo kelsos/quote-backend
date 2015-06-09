@@ -4,12 +4,12 @@ const PASS_LENGTH = 4;
 require_once '../vendor/autoload.php';
 require_once '../generated-conf/config.php';
 
+use Propel\Runtime\Map\TableMap;
 use Quote\Quote;
 use Quote\QuoteQuery;
 use Quote\User;
 use Quote\UserQuery;
 use QuoteEnd\Helpers;
-use Propel\Runtime\Map\TableMap;
 use Slim\Slim;
 use Symfony\Component\Yaml\Yaml;
 
@@ -25,8 +25,8 @@ $token = Helpers::getUserToken($app);
 $app->get('/', function () use ($app) {
 
   $response = [
-    'application' => 'Quote Backend',
-    'version' => 1.0
+      'application' => 'Quote Backend',
+      'version' => 1.0
   ];
 
   $app->response()->setBody(json_encode($response));
@@ -77,7 +77,7 @@ $app->post('/quote', function () use ($app, $token, $secret) {
   $rowAffected = $quote->save();
 
   $result = [
-    "success" => $rowAffected > 0
+      "success" => $rowAffected > 0
   ];
 
   $app->response()->setBody(json_encode($result));
@@ -86,8 +86,16 @@ $app->post('/quote', function () use ($app, $token, $secret) {
 
 $app->post("/register", function () use ($app, $mail) {
   $request = $app->request;
-  $username = $request->post("username");
-  $password = $request->post("password");
+  $contentType = $request->getContentType();
+
+  if (strcmp($contentType, 'application/json') != 0) {
+    Helpers::error(400, "Invalid request body", $app);
+  }
+
+  $body = json_decode($request->getBody());
+
+  $username = $body->{"username"};
+  $password = $body->{"password"};
 
   if (Helpers::isNullOrEmpty($username) || Helpers::isNullOrEmpty($password)) {
     Helpers::error(400, "Password / Username can't be empty", $app);
@@ -117,7 +125,7 @@ $app->post("/register", function () use ($app, $mail) {
   $rowsAffected = $user->save();
 
   $result = [
-    "success" => $rowsAffected > 0
+      "success" => $rowsAffected > 0
   ];
 
   if ($rowsAffected > 0) {
@@ -132,7 +140,7 @@ $app->post("/register", function () use ($app, $mail) {
 
 });
 
-$app->post("/login", function () use ($app, $secret) {
+$app->post("/login", function () use ($app, $secret, $config) {
   $request = $app->request();
   $contentType = $request->getContentType();
 
@@ -164,19 +172,19 @@ $app->post("/login", function () use ($app, $secret) {
   }
 
   $token = array(
-    "iat" => time(),
-    "nbf" => time(),
-    "exp" => time() + 172800,
-    "id" => $user->getId()
+      "iat" => time(),
+      "nbf" => time(),
+      "exp" => time() + 172800,
+      "id" => $user->getId()
   );
 
   $jwt = JWT::encode($token, $secret);
 
   $result = [
-    "token" => $jwt
+      "token" => $jwt
   ];
 
-  $app->setCookie("access_token", $jwt, $token['exp'], null, 'quote.inertia-blues.net', null, true);
+  $app->setCookie("access_token", $jwt, $token['exp'], null, $config['domain'], null, true);
   $app->response()->setBody(json_encode($result));
 });
 
@@ -232,7 +240,7 @@ $app->post('/admin/users/', function () use ($app, $token, $secret) {
   $rowsAffected = $user->save();
 
   $app->response()->setBody(json_encode([
-    'success' => $rowsAffected > 0
+      'success' => $rowsAffected > 0
   ]));
 });
 
