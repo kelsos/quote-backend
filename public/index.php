@@ -53,9 +53,15 @@ $app->get('/quote', function () use ($app, $token, $secret) {
 $app->post('/quote', function () use ($app, $token, $secret) {
   Helpers::validateToken($token, $secret, $app);
 
-  $request = $app->request;
-  $title = $request->post("title");
-  $quote_body = $request->post("quote");
+  $request = $app->request();
+  if (!strcmp($request->getContentType(), 'application/json')) {
+    Helpers::error(400, "Invalid request", $app);
+  }
+
+  $body = json_decode($request->getBody());
+
+  $quote_body = $body->{'quote'};
+  $title = $body->{'title'};
 
   if (Helpers::isNullOrEmpty($title) || Helpers::isNullOrEmpty($quote_body)) {
     Helpers::error(400, "Invalid data", $app);
@@ -127,9 +133,17 @@ $app->post("/register", function () use ($app, $mail) {
 });
 
 $app->post("/login", function () use ($app, $secret) {
-  $request = $app->request;
-  $username = $request->post("username");
-  $password = $request->post("password");
+  $request = $app->request();
+  $contentType = $request->getContentType();
+
+  if (strcmp($contentType, 'application/json') != 0) {
+    Helpers::error(400, "Invalid request body", $app);
+  }
+
+  $body = json_decode($request->getBody());
+
+  $username = $body->{"username"};
+  $password = $body->{"password"};
 
   if (Helpers::isNullOrEmpty($username) || Helpers::isNullOrEmpty($password)) {
     Helpers::error(400, "Password / Username can't be empty", $app);
@@ -162,6 +176,7 @@ $app->post("/login", function () use ($app, $secret) {
     "token" => $jwt
   ];
 
+  $app->setCookie("access_token", $jwt, $token['exp'], null, 'quote.inertia-blues.net', null, true);
   $app->response()->setBody(json_encode($result));
 });
 

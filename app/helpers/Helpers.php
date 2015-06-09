@@ -83,6 +83,11 @@ class Helpers
       $body = json_decode($request->getBody());
       $token = $body->{'token'};
     }
+
+    if ($token == null) {
+      $token = $app->getCookie("access_token", true);
+    }
+
     return $token;
   }
 }
