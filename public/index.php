@@ -252,5 +252,76 @@ $app->error(function (\Exception $e) use ($app) {
   Helpers::error(500, "Internal server error", $app);
 });
 
+$app->post('/password/forgot', function () use ($app, $token, $secret, $mail) {
+  $contentType = $app->request()->getContentType();
+
+  if (strcmp($contentType, 'application/json') != 0) {
+    Helpers::error(400, "Invalid request body", $app);
+  }
+
+  $body = json_decode($app->request()->getBody());
+
+  $email = $body->{'username'};
+
+  $user = UserQuery::create()->findByUsername($email)->getFirst();
+
+  $token = array(
+      "iat" => time(),
+      "nbf" => time(),
+      "exp" => time() + 300,
+      "id" => $user->getId(),
+      "recovery" => true
+  );
+
+  $jwt = JWT::encode($token, $secret);
+
+  $success = true;
+
+  try {
+    mail($email, "Password reset requests", "here " . $jwt, null, '-f' . $mail);
+  } catch (Exception $ex) {
+    $success = false;
+  }
+
+  $app->response()->setBody(json_encode([
+      'success' => $success,
+      'token' => $jwt
+  ]));
+});
+
+$app->post('/password/change', function () use ($app, $secret, $token) {
+  $contentType = $app->request()->getContentType();
+
+  if (strcmp($contentType, 'application/json') != 0) {
+    Helpers::error(400, "Invalid request body", $app);
+  }
+
+  $body = json_decode($app->request()->getBody());
+
+  if (property_exists($body, 'recovery')) {
+    if (!property_exists($body, 'token')) {
+      Helpers::error(400, "Missing recovery token", $app);
+    }
+
+    $recoveryToken = $body->{'token'};
+
+    if (empty($recoveryToken)) {
+      Helpers::error(403, "Not authorized", $app);
+    }
+
+    $validatedToken = Helpers::validateRecoveryToken($recoveryToken, $secret, $app);
+
+    if ($validatedToken == null) {
+      Helpers::error(403, "Invalid Token", $app);
+    }
+
+    Helpers::changePassword($body, $app, $validatedToken);
+
+  } else {
+    $validToken = Helpers::validateToken($token, $secret, $app);
+    Helpers::changePassword($body, $app, $validToken);
+  }
+});
+
 $app->response->header("Content-Type", "application/json");
 $app->run();

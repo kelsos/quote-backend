@@ -5,6 +5,7 @@ namespace QuoteEnd;
 
 use ExpiredException;
 use JWT;
+use Quote\UserQuery;
 use SignatureInvalidException;
 use Slim\Slim;
 use Symfony\Component\Console\Helper\Helper;
@@ -24,18 +25,23 @@ class Helpers
   }
 
   /**
-   * Creates an error and halts the Slim application returning the application JSON.
+   * Used before calls that require authentication to make sure that the
+   * user performing the request has a valid non expired token. In addition
+   * the recovery token must have a recovery property set to true.
    *
-   * @param int $code The error code (status)
-   * @param String $description The error description
-   * @param Slim $app Reference to the slim application
+   * @param String $token The token used by the user for the request
+   * @param String $secret The application secret used to verify the token.
+   * @param Slim $app A reference to the Slim application.
+   *
+   * @return null|object Returns the decoded array included in the token or null.
    */
-  static function error($code, $description, $app)
+  static function validateRecoveryToken($token, $secret, $app)
   {
-    $error = new Error();
-    $error->setStatus($code);
-    $error->setDescription($description);
-    $app->halt($error->getStatus(), json_encode($error));
+    $token = Helpers::validateToken($token, $secret, $app);
+    if (!property_exists($token, 'recovery')) {
+      $token = null;
+    }
+    return $token;
   }
 
   /**
@@ -55,6 +61,7 @@ class Helpers
     }
     try {
       $decode = JWT::decode($token, $secret, array('HS256'));
+      //Check if it is a recovery token and throw 403
       return $decode;
     } catch (SignatureInvalidException $ex) {
       Helpers::error(403, "Invalid token", $app);
@@ -67,7 +74,23 @@ class Helpers
   }
 
   /**
-   * Tries to extract the user token for any available source,
+   * Creates an error and halts the Slim application returning the application JSON.
+   *
+   * @param int $code The error code (status)
+   * @param String $description The error description
+   * @param Slim $app Reference to the slim application
+   */
+  static function error($code, $description, $app)
+  {
+    $error = new Error();
+    $error->setStatus($code);
+    $error->setDescription($description);
+    $app->halt($error->getStatus(), json_encode($error));
+  }
+
+  /**
+   * Checks the header for the token
+   *
    * Post param, Query string, or Json body.
    * @param Slim $app
    * @return String|null
@@ -75,19 +98,42 @@ class Helpers
   static function getUserToken($app)
   {
     $request = $app->request();
-    $token = $request->post("token") == null
-      ? $app->request->get("token")
-      : $app->request->post("token");
+    $token = "";
 
-    if ($token == null && strcmp($request->getContentType(), 'application/json') == 0) {
-      $body = json_decode($request->getBody());
-      $token = $body->{'token'};
-    }
-
-    if ($token == null) {
-      $token = $app->getCookie("access_token", true);
+    $authorization_header = $request->headers("Authorization");
+    if (strpos($authorization_header, "Bearer") !== false) {
+      $token = explode(" ", $authorization_header)[1];
     }
 
     return $token;
+  }
+
+  /**
+   * Changes the user's password
+   *
+   * @param object $body The decoded request body.
+   * @param Slim $app A reference to the slim application
+   * @param object $validatedToken A token that has passed the validation check
+   * @throws \Propel\Runtime\Exception\PropelException
+   */
+  static function changePassword($body, $app, $validatedToken)
+  {
+    if (!property_exists($body, 'username') || !property_exists($body, 'password')) {
+      Helpers::error(400, "Missing parameters", $app);
+    }
+
+    $password = $body->{'password'};
+
+    $user = UserQuery::create()->findOneById($validatedToken->{'id'});
+
+    $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+    $user->setPassword($password_hash);
+
+    $rowsAffected = $user->save();
+
+    $app->response()->setBody(json_encode([
+        'success' => $rowsAffected > 0
+    ]));
   }
 }
