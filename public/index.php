@@ -19,7 +19,7 @@ $config = Yaml::parse(file_get_contents("../config.yaml"));
  * Development only code to help with CORS issues when sending requests from
  * the Grunt server
  */
-$development = strcmp($config['environment'], 'development');
+$development = strcmp($config['environment'], 'development') !== false;
 
 if ($development) {
   if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
@@ -112,6 +112,7 @@ $app->post("/register", function () use ($app, $mail) {
   Helpers::checkForJsonRequest($app);
 
   $body = json_decode($request->getBody());
+   //TODO: check if properties exist
 
   $username = $body->{"username"};
   $password = $body->{"password"};
