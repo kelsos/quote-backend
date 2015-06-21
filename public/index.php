@@ -201,7 +201,6 @@ $app->post("/login", function () use ($app, $secret, $config) {
       "token" => $jwt
   ];
 
-  $app->setCookie("access_token", $jwt, $token['exp'], null, $config['domain'], null, true);
   $app->response()->setBody(json_encode($result));
 });
 
