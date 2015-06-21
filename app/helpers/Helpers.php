@@ -136,4 +136,18 @@ class Helpers
         'success' => $rowsAffected > 0
     ]));
   }
+
+  /**
+   * Checks if the content type of the incoming request is 'application/json' and if not
+   * returns a 400 code.
+   *
+   * @param Slim $app
+   */
+  static function checkForJsonRequest($app)
+  {
+    $request = $app->request();
+    if (strpos($request->getContentType(), 'application/json') === false) {
+      Helpers::error(400, "Invalid request" , $app);
+    }
+  }
 }

@@ -13,8 +13,32 @@ use QuoteEnd\Helpers;
 use Slim\Slim;
 use Symfony\Component\Yaml\Yaml;
 
-$app = new Slim();
 $config = Yaml::parse(file_get_contents("../config.yaml"));
+
+/**
+ * Development only code to help with CORS issues when sending requests from
+ * the Grunt server
+ */
+$development = strcmp($config['environment'], 'development');
+
+if ($development) {
+  if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']) && (
+            $_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'] == 'POST' ||
+            $_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'] == 'DELETE' ||
+            $_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'] == 'PUT' )) {
+      header('Access-Control-Allow-Origin: *');
+      header("Access-Control-Allow-Credentials: true");
+      header('Access-Control-Allow-Headers: X-Requested-With');
+      header('Access-Control-Allow-Headers: Content-Type');
+      header('Access-Control-Allow-Methods: POST, GET, OPTIONS, DELETE, PUT'); // http://stackoverflow.com/a/7605119/578667
+      header('Access-Control-Max-Age: 86400');
+    }
+    exit;
+  }
+}
+
+$app = new Slim();
 
 $secret = $config['secret'];
 $mail = $config['mail'];
@@ -52,11 +76,9 @@ $app->get('/quote', function () use ($app, $token, $secret) {
 
 $app->post('/quote', function () use ($app, $token, $secret) {
   Helpers::validateToken($token, $secret, $app);
-
   $request = $app->request();
-  if (!strcmp($request->getContentType(), 'application/json')) {
-    Helpers::error(400, "Invalid request", $app);
-  }
+
+  Helpers::checkForJsonRequest($app);
 
   $body = json_decode($request->getBody());
 
@@ -86,11 +108,8 @@ $app->post('/quote', function () use ($app, $token, $secret) {
 
 $app->post("/register", function () use ($app, $mail) {
   $request = $app->request;
-  $contentType = $request->getContentType();
 
-  if (strcmp($contentType, 'application/json') != 0) {
-    Helpers::error(400, "Invalid request body", $app);
-  }
+  Helpers::checkForJsonRequest($app);
 
   $body = json_decode($request->getBody());
 
@@ -142,11 +161,8 @@ $app->post("/register", function () use ($app, $mail) {
 
 $app->post("/login", function () use ($app, $secret, $config) {
   $request = $app->request();
-  $contentType = $request->getContentType();
 
-  if (strcmp($contentType, 'application/json') != 0) {
-    Helpers::error(400, "Invalid request body", $app);
-  }
+  Helpers::checkForJsonRequest($app);
 
   $body = json_decode($request->getBody());
 
@@ -215,11 +231,7 @@ $app->post('/admin/users/', function () use ($app, $token, $secret) {
     Helpers::error(403, "You have not administrative access.", $app);
   }
 
-  $contentType = $app->request()->getContentType();
-
-  if (strcmp($contentType, 'application/json') != 0) {
-    Helpers::error(400, "Invalid request body", $app);
-  }
+  Helpers::checkForJsonRequest($app);
 
   $body = json_decode($app->request()->getBody());
 
@@ -253,11 +265,7 @@ $app->error(function (\Exception $e) use ($app) {
 });
 
 $app->post('/password/forgot', function () use ($app, $token, $secret, $mail) {
-  $contentType = $app->request()->getContentType();
-
-  if (strcmp($contentType, 'application/json') != 0) {
-    Helpers::error(400, "Invalid request body", $app);
-  }
+  Helpers::checkForJsonRequest($app);
 
   $body = json_decode($app->request()->getBody());
 
@@ -290,11 +298,7 @@ $app->post('/password/forgot', function () use ($app, $token, $secret, $mail) {
 });
 
 $app->post('/password/change', function () use ($app, $secret, $token) {
-  $contentType = $app->request()->getContentType();
-
-  if (strcmp($contentType, 'application/json') != 0) {
-    Helpers::error(400, "Invalid request body", $app);
-  }
+  Helpers::checkForJsonRequest($app);
 
   $body = json_decode($app->request()->getBody());
 
@@ -324,4 +328,10 @@ $app->post('/password/change', function () use ($app, $secret, $token) {
 });
 
 $app->response->header("Content-Type", "application/json");
+
+if ($development) {
+  $app->response->header("Access-Control-Allow-Origin", '*');
+  $app->response->header("Access-Control-Allow-Methods: PUT, GET, POST, DELETE, OPTIONS");
+}
+
 $app->run();
