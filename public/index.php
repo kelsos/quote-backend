@@ -14,34 +14,11 @@ use Slim\Slim;
 use Symfony\Component\Yaml\Yaml;
 
 $config = Yaml::parse(file_get_contents("../config.yaml"));
-
-/**
- * Development only code to help with CORS issues when sending requests from
- * the Grunt server
- */
-$development = strcmp($config['environment'], 'development') !== false;
-
-if ($development) {
-  if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']) && (
-            $_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'] == 'POST' ||
-            $_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'] == 'DELETE' ||
-            $_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'] == 'PUT' )) {
-      header('Access-Control-Allow-Origin: *');
-      header("Access-Control-Allow-Credentials: true");
-      header('Access-Control-Allow-Headers: X-Requested-With');
-      header('Access-Control-Allow-Headers: Content-Type');
-      header('Access-Control-Allow-Methods: POST, GET, OPTIONS, DELETE, PUT'); // http://stackoverflow.com/a/7605119/578667
-      header('Access-Control-Max-Age: 86400');
-    }
-    exit;
-  }
-}
-
-$app = new Slim();
-
 $secret = $config['secret'];
 $mail = $config['mail'];
+$development = strcmp($config['environment'], 'development') !== false;
+
+$app = new Slim();
 
 $request = $app->request;
 $token = Helpers::getUserToken($app);
@@ -112,10 +89,13 @@ $app->post("/register", function () use ($app, $mail) {
   Helpers::checkForJsonRequest($app);
 
   $body = json_decode($request->getBody());
-   //TODO: check if properties exist
 
-  $username = $body->{"username"};
-  $password = $body->{"password"};
+  if ($body == null) {
+    Helpers::error(400, "Bad Request", $app);
+  }
+
+  $username = property_exists($body, 'username') ? $body->{"username"} : null;
+  $password = property_exists($body, 'password') ? $body->{"password"} : null;
 
   if (Helpers::isNullOrEmpty($username) || Helpers::isNullOrEmpty($password)) {
     Helpers::error(400, "Password / Username can't be empty", $app);
@@ -167,8 +147,12 @@ $app->post("/login", function () use ($app, $secret, $config) {
 
   $body = json_decode($request->getBody());
 
-  $username = $body->{"username"};
-  $password = $body->{"password"};
+  if ($body == null) {
+    Helpers::error(400, "Bad request", $app);
+  }
+
+  $username = property_exists($body, 'username') ? $body->{"username"} : null;
+  $password = property_exists($body, 'password') ? $body->{"password"} : null;
 
   if (Helpers::isNullOrEmpty($username) || Helpers::isNullOrEmpty($password)) {
     Helpers::error(400, "Password / Username can't be empty", $app);
@@ -327,11 +311,24 @@ $app->post('/password/change', function () use ($app, $secret, $token) {
   }
 });
 
-$app->response->header("Content-Type", "application/json");
+$response = $app->response();
+
+$response->headers()->set("Content-Type", "application/json");
 
 if ($development) {
-  $app->response->header("Access-Control-Allow-Origin", '*');
-  $app->response->header("Access-Control-Allow-Methods: PUT, GET, POST, DELETE, OPTIONS");
+  $response->headers()->set("Access-Control-Allow-Origin", '*');
+  $response->headers()->set("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");
+  $response->headers()->set("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, X-Requested-With");
+}
+
+if ($development) {
+  $app->options("/(:name+)", function() use ($app) {
+    $response = $app->response();
+    $response->headers()->set("Access-Control-Allow-Origin", '*');
+    $response->headers()->set("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");
+    $response->headers()->set("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, X-Requested-With");
+    $response->setBody("");
+  });
 }
 
 $app->run();
