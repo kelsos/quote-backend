@@ -1,6 +1,7 @@
 <?php
 
 const PASS_LENGTH = 4;
+
 require_once '../vendor/autoload.php';
 require_once '../generated-conf/config.php';
 
@@ -9,6 +10,7 @@ use Quote\Quote;
 use Quote\QuoteQuery;
 use Quote\User;
 use Quote\UserQuery;
+use QuoteEnd\Constants;
 use QuoteEnd\Helpers;
 use Slim\Slim;
 use Symfony\Component\Yaml\Yaml;
@@ -39,7 +41,7 @@ $app->get('/quote/:id', function ($id) use ($app, $token, $secret) {
   $quote = $quoteQuery->findPk($id);
 
   if ($quote == null) {
-    Helpers::error(404, "Quote does not exist yes!", $app);
+    Helpers::error(Constants::NOT_FOUND, "Quote does not exist yes!", $app);
   }
 
   $app->response()->setBody(json_encode($quote->toArray(TableMap::TYPE_FIELDNAME)));
@@ -63,7 +65,7 @@ $app->post('/quote', function () use ($app, $token, $secret) {
   $title = $body->{'title'};
 
   if (Helpers::isNullOrEmpty($title) || Helpers::isNullOrEmpty($quote_body)) {
-    Helpers::error(400, "Invalid data", $app);
+    Helpers::error(Constants::INVALID_PARAMETERS, "Invalid data", $app);
   }
 
   date_default_timezone_set("UTC");
@@ -76,7 +78,8 @@ $app->post('/quote', function () use ($app, $token, $secret) {
   $rowAffected = $quote->save();
 
   $result = [
-      "success" => $rowAffected > 0
+      "success" => $rowAffected > 0,
+      "code" => Constants::SUCCESS
   ];
 
   $app->response()->setBody(json_encode($result));
@@ -91,22 +94,22 @@ $app->post("/register", function () use ($app, $mail) {
   $body = json_decode($request->getBody());
 
   if ($body == null) {
-    Helpers::error(400, "Bad Request", $app);
+    Helpers::error(Constants::INVALID_PARAMETERS, "Bad Request", $app);
   }
 
   $username = property_exists($body, 'username') ? $body->{"username"} : null;
   $password = property_exists($body, 'password') ? $body->{"password"} : null;
 
   if (Helpers::isNullOrEmpty($username) || Helpers::isNullOrEmpty($password)) {
-    Helpers::error(400, "Password / Username can't be empty", $app);
+    Helpers::error(Constants::INVALID_PARAMETERS, "Password / Username can't be empty", $app);
   }
 
   if (!filter_var($username, FILTER_VALIDATE_EMAIL)) {
-    Helpers::error(400, "Username must be a valid e-mail", $app);
+    Helpers::error(Constants::INVALID_PARAMETERS, "Username must be a valid e-mail", $app);
   }
 
   if (strlen($password) < PASS_LENGTH) {
-    Helpers::error(400, "Password must be at least " . PASS_LENGTH . " characters long", $app);
+    Helpers::error(Constants::INVALID_PARAMETERS, "Password must be at least " . PASS_LENGTH . " characters long", $app);
   }
 
   $password_hash = password_hash($password, PASSWORD_DEFAULT);
@@ -114,7 +117,7 @@ $app->post("/register", function () use ($app, $mail) {
   $user = UserQuery::create()->findByUsername($username)->getFirst();
 
   if ($user != null) {
-    Helpers::error(409, "User already exists", $app);
+    Helpers::error(Constants::CONFLICT, "User already exists", $app);
   }
 
   $user = new User();
@@ -125,7 +128,8 @@ $app->post("/register", function () use ($app, $mail) {
   $rowsAffected = $user->save();
 
   $result = [
-      "success" => $rowsAffected > 0
+      "success" => $rowsAffected > 0,
+      "code" => Constants::SUCCESS
   ];
 
   if ($rowsAffected > 0) {
@@ -148,28 +152,28 @@ $app->post("/login", function () use ($app, $secret, $config) {
   $body = json_decode($request->getBody());
 
   if ($body == null) {
-    Helpers::error(400, "Bad request", $app);
+    Helpers::error(Constants::INVALID_PARAMETERS, "Bad request", $app);
   }
 
   $username = property_exists($body, 'username') ? $body->{"username"} : null;
   $password = property_exists($body, 'password') ? $body->{"password"} : null;
 
   if (Helpers::isNullOrEmpty($username) || Helpers::isNullOrEmpty($password)) {
-    Helpers::error(400, "Password / Username can't be empty", $app);
+    Helpers::error(Constants::INVALID_PARAMETERS, "Password / Username can't be empty", $app);
   }
 
   $user = UserQuery::create()->findByUsername($username)->getFirst();
 
   if ($user == null) {
-    Helpers::error(400, "Invalid username or password", $app);
+    Helpers::error(Constants::INVALID_PARAMETERS, "Invalid username or password", $app);
   }
 
   if (!$user->isApproved()) {
-    Helpers::error(400, "User has not yet been approved by a system administrator", $app);
+    Helpers::error(Constants::INVALID_PARAMETERS, "User has not yet been approved by a system administrator", $app);
   }
 
   if (!password_verify($password, $user->getPassword())) {
-    Helpers::error(400, "Invalid username or password", $app);
+    Helpers::error(Constants::INVALID_PARAMETERS, "Invalid username or password", $app);
   }
 
   $token = array(
@@ -182,7 +186,8 @@ $app->post("/login", function () use ($app, $secret, $config) {
   $jwt = JWT::encode($token, $secret);
 
   $result = [
-      "token" => $jwt
+      "token" => $jwt,
+      "code" => Constants::SUCCESS
   ];
 
   $app->response()->setBody(json_encode($result));
@@ -194,7 +199,7 @@ $app->get('/admin/users', function () use ($app, $token, $secret) {
   $active_user = UserQuery::create()->findOneById($user_id);
 
   if (!$active_user->isAdmin()) {
-    Helpers::error(403, "You have not administrative access.", $app);
+    Helpers::error(Constants::UNAUTHORIZED, "You have not administrative access.", $app);
   }
 
   $users = UserQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
@@ -212,7 +217,7 @@ $app->post('/admin/users/', function () use ($app, $token, $secret) {
   $active_user = UserQuery::create()->findOneById($user_id);
 
   if (!$active_user->isAdmin()) {
-    Helpers::error(403, "You have not administrative access.", $app);
+    Helpers::error(Constants::UNAUTHORIZED, "You have not administrative access.", $app);
   }
 
   Helpers::checkForJsonRequest($app);
@@ -223,29 +228,30 @@ $app->post('/admin/users/', function () use ($app, $token, $secret) {
   $approved = boolval($app->request()->post('approved'));
 
   if (!is_int($user_id) || $user_id <= 0 || !is_bool($approved)) {
-    Helpers::error(400, "Missing or invalid parameters", $app);
+    Helpers::error(Constants::INVALID_PARAMETERS, "Missing or invalid parameters", $app);
   }
 
   $user = UserQuery::create()->findOneById($user_id);
 
   if ($user == null) {
-    Helpers::error(404, "Invalid user", $app);
+    Helpers::error(Constants::NOT_FOUND, "Invalid user", $app);
   }
 
   $user->setApproved($approved);
   $rowsAffected = $user->save();
 
   $app->response()->setBody(json_encode([
-      'success' => $rowsAffected > 0
+      'success' => $rowsAffected > 0,
+      'code' => Constants::SUCCESS
   ]));
 });
 
 $app->notFound(function () use ($app) {
-  Helpers::error(404, "Invalid Path", $app);
+  Helpers::error(Constants::NOT_FOUND, "Invalid Path", $app);
 });
 
 $app->error(function (\Exception $e) use ($app) {
-  Helpers::error(500, "Internal server error", $app);
+  Helpers::error(Constants::SERVER_ERROR, "Internal server error", $app);
 });
 
 $app->post('/password/forgot', function () use ($app, $token, $secret, $mail) {
@@ -277,7 +283,8 @@ $app->post('/password/forgot', function () use ($app, $token, $secret, $mail) {
 
   $app->response()->setBody(json_encode([
       'success' => $success,
-      'token' => $jwt
+      'token' => $jwt,
+      'code' => Constants::SUCCESS
   ]));
 });
 
@@ -288,19 +295,19 @@ $app->post('/password/change', function () use ($app, $secret, $token) {
 
   if (property_exists($body, 'recovery')) {
     if (!property_exists($body, 'token')) {
-      Helpers::error(400, "Missing recovery token", $app);
+      Helpers::error(Constants::INVALID_PARAMETERS, "Missing recovery token", $app);
     }
 
     $recoveryToken = $body->{'token'};
 
     if (empty($recoveryToken)) {
-      Helpers::error(403, "Not authorized", $app);
+      Helpers::error(Constants::UNAUTHORIZED, "Not authorized", $app);
     }
 
     $validatedToken = Helpers::validateRecoveryToken($recoveryToken, $secret, $app);
 
     if ($validatedToken == null) {
-      Helpers::error(403, "Invalid Token", $app);
+      Helpers::error(Constants::UNAUTHORIZED, "Invalid Token", $app);
     }
 
     Helpers::changePassword($body, $app, $validatedToken);
@@ -322,7 +329,7 @@ if ($development) {
 }
 
 if ($development) {
-  $app->options("/(:name+)", function() use ($app) {
+  $app->options("/(:name+)", function () use ($app) {
     $response = $app->response();
     $response->headers()->set("Access-Control-Allow-Origin", '*');
     $response->headers()->set("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");

@@ -133,7 +133,8 @@ class Helpers
     $rowsAffected = $user->save();
 
     $app->response()->setBody(json_encode([
-        'success' => $rowsAffected > 0
+        'success' => $rowsAffected > 0,
+        'code' => Constants::SUCCESS
     ]));
   }
 
