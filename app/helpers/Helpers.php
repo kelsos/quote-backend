@@ -57,18 +57,18 @@ class Helpers
   static function validateToken($token, $secret, $app)
   {
     if ($token == null) {
-      Helpers::error(400, "Missing token", $app);
+      Helpers::error(Constants::INVALID_PARAMETERS, "Missing token", $app);
     }
     try {
       $decode = JWT::decode($token, $secret, array('HS256'));
       //Check if it is a recovery token and throw 403
       return $decode;
     } catch (SignatureInvalidException $ex) {
-      Helpers::error(403, "Invalid token", $app);
+      Helpers::error(Constants::UNAUTHORIZED, "Invalid token", $app);
     } catch (ExpiredException $ex) {
-      Helpers::error(403, "Expired token", $app);
+      Helpers::error(Constants::UNAUTHORIZED, "Expired token", $app);
     } catch (UnexpectedValueException $ex) {
-      Helpers::error(400, "Something wrong will trying to decode the token", $app);
+      Helpers::error(Constants::UNAUTHORIZED, "Something wrong will trying to decode the token", $app);
     }
     return null;
   }
@@ -119,7 +119,7 @@ class Helpers
   static function changePassword($body, $app, $validatedToken)
   {
     if (!property_exists($body, 'username') || !property_exists($body, 'password')) {
-      Helpers::error(400, "Missing parameters", $app);
+      Helpers::error(Constants::INVALID_PARAMETERS, "Missing parameters", $app);
     }
 
     $password = $body->{'password'};
@@ -148,7 +148,7 @@ class Helpers
   {
     $request = $app->request();
     if (strpos($request->getContentType(), 'application/json') === false) {
-      Helpers::error(400, "Invalid request" , $app);
+      Helpers::error(Constants::INVALID_PARAMETERS, "Invalid request" , $app);
     }
   }
 }
