@@ -10,33 +10,53 @@ use Quote\Quote;
 use Quote\QuoteQuery;
 use Quote\User;
 use Quote\UserQuery;
+use QuoteEnd\StateManager;
 use QuoteEnd\Constants;
 use QuoteEnd\Helpers;
+use Slim\Route;
 use Slim\Slim;
-use Symfony\Component\Yaml\Yaml;
-
-$config = Yaml::parse(file_get_contents("../config.yaml"));
-$secret = $config['secret'];
-$mail = $config['mail'];
-$development = strcmp($config['environment'], 'development') !== false;
 
 $app = new Slim();
 
 $request = $app->request;
-$token = Helpers::getUserToken($app);
+
+/**
+ * Checks and validates the user's request by validating the provided jwt token.
+ * @param Route $route
+ */
+function authenticate(Route $route)
+{
+  $app = Slim::getInstance();
+  $token = Helpers::getUserToken($app);
+  $secret = StateManager::getInstance()->getSecret();
+  $validated = Helpers::validateToken($token, $secret, $app);
+  StateManager::getInstance()->setTokenData($validated);
+}
+
+function authorize(Route $route)
+{
+  $app = Slim::getInstance();
+  $user_id = StateManager::getInstance()->getTokenData()->{'id'};
+  $active_user = UserQuery::create()->findOneById($user_id);
+
+  if (!$active_user->isAdmin()) {
+    Helpers::error(Constants::UNAUTHORIZED, "You have not administrative access.", $app);
+  }
+}
 
 $app->get('/', function () use ($app) {
 
   $response = [
-      'application' => 'Quote Backend',
-      'version' => 1.0
+    'application' => 'Quote Backend',
+    'version' => 1.0
   ];
 
   $app->response()->setBody(json_encode($response));
 });
 
-$app->get('/quote/:id', function ($id) use ($app, $token, $secret) {
-  Helpers::validateToken($token, $secret, $app);
+$app->get('/quote/:id', 'authenticate', function ($id) {
+  $app = Slim::getInstance();
+
   $quoteQuery = new QuoteQuery();
   $quote = $quoteQuery->findPk($id);
 
@@ -47,14 +67,14 @@ $app->get('/quote/:id', function ($id) use ($app, $token, $secret) {
   $app->response()->setBody(json_encode($quote->toArray(TableMap::TYPE_FIELDNAME)));
 });
 
-$app->get('/quote', function () use ($app, $token, $secret) {
-  Helpers::validateToken($token, $secret, $app);
+$app->get('/quote', 'authenticate', function () {
+  $app = Slim::getInstance();
   $quotes = QuoteQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
   $app->response()->setBody(json_encode($quotes));
 });
 
-$app->post('/quote', function () use ($app, $token, $secret) {
-  Helpers::validateToken($token, $secret, $app);
+$app->post('/quote', 'authenticate', function () {
+  $app = Slim::getInstance();
   $request = $app->request();
 
   Helpers::checkForJsonRequest($app);
@@ -78,17 +98,18 @@ $app->post('/quote', function () use ($app, $token, $secret) {
   $rowAffected = $quote->save();
 
   $result = [
-      "success" => $rowAffected > 0,
-      "code" => Constants::SUCCESS
+    "success" => $rowAffected > 0,
+    "code" => Constants::SUCCESS
   ];
 
   $app->response()->setBody(json_encode($result));
 
 });
 
-$app->post("/register", function () use ($app, $mail) {
+$app->post("/register", function () use ($app) {
   $request = $app->request;
 
+  $mail = StateManager::getInstance()->getMail();
   Helpers::checkForJsonRequest($app);
 
   $body = json_decode($request->getBody());
@@ -128,8 +149,8 @@ $app->post("/register", function () use ($app, $mail) {
   $rowsAffected = $user->save();
 
   $result = [
-      "success" => $rowsAffected > 0,
-      "code" => Constants::SUCCESS
+    "success" => $rowsAffected > 0,
+    "code" => Constants::SUCCESS
   ];
 
   if ($rowsAffected > 0) {
@@ -144,7 +165,7 @@ $app->post("/register", function () use ($app, $mail) {
 
 });
 
-$app->post("/login", function () use ($app, $secret, $config) {
+$app->post("/login", function () use ($app) {
   $request = $app->request();
 
   Helpers::checkForJsonRequest($app);
@@ -177,30 +198,24 @@ $app->post("/login", function () use ($app, $secret, $config) {
   }
 
   $token = array(
-      "iat" => time(),
-      "nbf" => time(),
-      "exp" => time() + 172800,
-      "id" => $user->getId()
+    "iat" => time(),
+    "nbf" => time(),
+    "exp" => time() + 172800,
+    "id" => $user->getId()
   );
+  $secret = StateManager::getInstance()->getSecret();
 
   $jwt = JWT::encode($token, $secret);
 
   $result = [
-      "token" => $jwt,
-      "code" => Constants::SUCCESS
+    "token" => $jwt,
+    "code" => Constants::SUCCESS
   ];
 
   $app->response()->setBody(json_encode($result));
 });
 
-$app->get('/admin/users', function () use ($app, $token, $secret) {
-  $token_content = Helpers::validateToken($token, $secret, $app);
-  $user_id = $token_content->{'id'};
-  $active_user = UserQuery::create()->findOneById($user_id);
-
-  if (!$active_user->isAdmin()) {
-    Helpers::error(Constants::UNAUTHORIZED, "You have not administrative access.", $app);
-  }
+$app->get('/admin/users', 'authenticate', 'authorize', function () use ($app) {
 
   $users = UserQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
 
@@ -211,14 +226,8 @@ $app->get('/admin/users', function () use ($app, $token, $secret) {
   $app->response()->setBody(json_encode($users));
 });
 
-$app->post('/admin/users/', function () use ($app, $token, $secret) {
-  $token_content = Helpers::validateToken($token, $secret, $app);
-  $user_id = $token_content->{'id'};
-  $active_user = UserQuery::create()->findOneById($user_id);
-
-  if (!$active_user->isAdmin()) {
-    Helpers::error(Constants::UNAUTHORIZED, "You have not administrative access.", $app);
-  }
+$app->post('/admin/users/', 'authenticate', 'authorize', function () {
+  $app = Slim::getInstance();
 
   Helpers::checkForJsonRequest($app);
 
@@ -241,8 +250,8 @@ $app->post('/admin/users/', function () use ($app, $token, $secret) {
   $rowsAffected = $user->save();
 
   $app->response()->setBody(json_encode([
-      'success' => $rowsAffected > 0,
-      'code' => Constants::SUCCESS
+    'success' => $rowsAffected > 0,
+    'code' => Constants::SUCCESS
   ]));
 });
 
@@ -254,7 +263,8 @@ $app->error(function (\Exception $e) use ($app) {
   Helpers::error(Constants::SERVER_ERROR, "Internal server error", $app);
 });
 
-$app->post('/password/forgot', function () use ($app, $token, $secret, $mail) {
+$app->post('/password/forgot', function () use ($app) {
+  $app = Slim::getInstance();
   Helpers::checkForJsonRequest($app);
 
   $body = json_decode($app->request()->getBody());
@@ -264,14 +274,14 @@ $app->post('/password/forgot', function () use ($app, $token, $secret, $mail) {
   $user = UserQuery::create()->findByUsername($email)->getFirst();
 
   $token = array(
-      "iat" => time(),
-      "nbf" => time(),
-      "exp" => time() + 300,
-      "id" => $user->getId(),
-      "recovery" => true
+    "iat" => time(),
+    "nbf" => time(),
+    "exp" => time() + 300,
+    "id" => $user->getId(),
+    "recovery" => true
   );
 
-  $jwt = JWT::encode($token, $secret);
+  $jwt = JWT::encode($token, StateManager::getInstance()->getSecret());
 
   $success = true;
 
@@ -282,13 +292,13 @@ $app->post('/password/forgot', function () use ($app, $token, $secret, $mail) {
   }
 
   $app->response()->setBody(json_encode([
-      'success' => $success,
-      'token' => $jwt,
-      'code' => Constants::SUCCESS
+    'success' => $success,
+    'token' => $jwt,
+    'code' => Constants::SUCCESS
   ]));
 });
 
-$app->post('/password/change', function () use ($app, $secret, $token) {
+$app->post('/password/change', function () use ($app) {
   Helpers::checkForJsonRequest($app);
 
   $body = json_decode($app->request()->getBody());
@@ -321,6 +331,8 @@ $app->post('/password/change', function () use ($app, $secret, $token) {
 $response = $app->response();
 
 $response->headers()->set("Content-Type", "application/json");
+
+$development = StateManager::getInstance()->isDevelopment();
 
 if ($development) {
   $response->headers()->set("Access-Control-Allow-Origin", '*');
