@@ -5,6 +5,7 @@ const PASS_LENGTH = 4;
 require_once '../vendor/autoload.php';
 require_once '../generated-conf/config.php';
 
+use Exception;
 use Propel\Runtime\Map\TableMap;
 use Quote\Quote;
 use Quote\QuoteQuery;
@@ -44,6 +45,12 @@ function authorize(Route $route)
   }
 }
 
+function json(Route $route)
+{
+  $app = Slim::getInstance();
+  Helpers::checkForJsonRequest($app);
+}
+
 $app->get('/', function () use ($app) {
 
   $response = [
@@ -54,9 +61,7 @@ $app->get('/', function () use ($app) {
   $app->response()->setBody(json_encode($response));
 });
 
-$app->get('/quote/:id', 'authenticate', function ($id) {
-  $app = Slim::getInstance();
-
+$app->get('/quote/:id', 'authenticate', function ($id) use ($app) {
   $quoteQuery = new QuoteQuery();
   $quote = $quoteQuery->findPk($id);
 
@@ -67,18 +72,13 @@ $app->get('/quote/:id', 'authenticate', function ($id) {
   $app->response()->setBody(json_encode($quote->toArray(TableMap::TYPE_FIELDNAME)));
 });
 
-$app->get('/quote', 'authenticate', function () {
-  $app = Slim::getInstance();
+$app->get('/quote', 'authenticate', function () use ($app){
   $quotes = QuoteQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
   $app->response()->setBody(json_encode($quotes));
 });
 
-$app->post('/quote', 'authenticate', function () {
-  $app = Slim::getInstance();
+$app->post('/quote', 'authenticate', 'json', function () use ($app) {
   $request = $app->request();
-
-  Helpers::checkForJsonRequest($app);
-
   $body = json_decode($request->getBody());
 
   $quote_body = $body->{'quote'};
@@ -106,11 +106,10 @@ $app->post('/quote', 'authenticate', function () {
 
 });
 
-$app->post("/register", function () use ($app) {
+$app->post("/register", 'json', function () use ($app) {
   $request = $app->request;
 
   $mail = StateManager::getInstance()->getMail();
-  Helpers::checkForJsonRequest($app);
 
   $body = json_decode($request->getBody());
 
@@ -165,11 +164,8 @@ $app->post("/register", function () use ($app) {
 
 });
 
-$app->post("/login", function () use ($app) {
+$app->post("/login", 'json', function () use ($app) {
   $request = $app->request();
-
-  Helpers::checkForJsonRequest($app);
-
   $body = json_decode($request->getBody());
 
   if ($body == null) {
@@ -215,117 +211,121 @@ $app->post("/login", function () use ($app) {
   $app->response()->setBody(json_encode($result));
 });
 
-$app->get('/admin/users', 'authenticate', 'authorize', function () use ($app) {
+$app->group('/admin', function () use ($app) {
 
-  $users = UserQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
+  $app->get('/users', 'authenticate', 'authorize', function () use ($app) {
 
-  foreach ($users as &$user) {
-    unset($user['password']);
-  }
+    $users = UserQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
 
-  $app->response()->setBody(json_encode($users));
-});
+    foreach ($users as &$user) {
+      unset($user['password']);
+    }
 
-$app->post('/admin/users/', 'authenticate', 'authorize', function () {
-  $app = Slim::getInstance();
+    $app->response()->setBody(json_encode($users));
+  });
 
-  Helpers::checkForJsonRequest($app);
+  $app->post('/users', 'authenticate', 'authorize', 'json', function () use ($app) {
+    $body = json_decode($app->request()->getBody());
 
-  $body = json_decode($app->request()->getBody());
+    $user_id = $body->{'id'};
+    $approved = boolval($app->request()->post('approved'));
 
-  $user_id = $body->{'id'};
-  $approved = boolval($app->request()->post('approved'));
+    if (!is_int($user_id) || $user_id <= 0 || !is_bool($approved)) {
+      Helpers::error(Constants::INVALID_PARAMETERS, "Missing or invalid parameters", $app);
+    }
 
-  if (!is_int($user_id) || $user_id <= 0 || !is_bool($approved)) {
-    Helpers::error(Constants::INVALID_PARAMETERS, "Missing or invalid parameters", $app);
-  }
+    $user = UserQuery::create()->findOneById($user_id);
 
-  $user = UserQuery::create()->findOneById($user_id);
+    if ($user == null) {
+      Helpers::error(Constants::NOT_FOUND, "Invalid user", $app);
+    }
 
-  if ($user == null) {
-    Helpers::error(Constants::NOT_FOUND, "Invalid user", $app);
-  }
+    $user->setApproved($approved);
+    $rowsAffected = $user->save();
 
-  $user->setApproved($approved);
-  $rowsAffected = $user->save();
-
-  $app->response()->setBody(json_encode([
-    'success' => $rowsAffected > 0,
-    'code' => Constants::SUCCESS
-  ]));
+    $app->response()->setBody(json_encode([
+      'success' => $rowsAffected > 0,
+      'code' => Constants::SUCCESS
+    ]));
+  });
 });
 
 $app->notFound(function () use ($app) {
   Helpers::error(Constants::NOT_FOUND, "Invalid Path", $app);
 });
 
-$app->error(function (\Exception $e) use ($app) {
+$app->error(function (Exception $e) use ($app) {
   Helpers::error(Constants::SERVER_ERROR, "Internal server error", $app);
 });
 
-$app->post('/password/forgot', function () use ($app) {
-  $app = Slim::getInstance();
-  Helpers::checkForJsonRequest($app);
+$app->group("/password", function() use ($app)  {
 
-  $body = json_decode($app->request()->getBody());
+  $app->post('/forgot', 'json', function () use ($app) {
+    $app = Slim::getInstance();
 
-  $email = $body->{'username'};
+    $body = json_decode($app->request()->getBody());
 
-  $user = UserQuery::create()->findByUsername($email)->getFirst();
+    $email = $body->{'username'};
 
-  $token = array(
-    "iat" => time(),
-    "nbf" => time(),
-    "exp" => time() + 300,
-    "id" => $user->getId(),
-    "recovery" => true
-  );
+    $user = UserQuery::create()->findByUsername($email)->getFirst();
 
-  $jwt = JWT::encode($token, StateManager::getInstance()->getSecret());
+    $token = array(
+      "iat" => time(),
+      "nbf" => time(),
+      "exp" => time() + 300,
+      "id" => $user->getId(),
+      "recovery" => true
+    );
 
-  $success = true;
+    $stateManager = StateManager::getInstance();
+    $jwt = JWT::encode($token, $stateManager->getSecret());
 
-  try {
-    mail($email, "Password reset requests", "here " . $jwt, null, '-f' . $mail);
-  } catch (Exception $ex) {
-    $success = false;
-  }
+    $success = true;
 
-  $app->response()->setBody(json_encode([
-    'success' => $success,
-    'token' => $jwt,
-    'code' => Constants::SUCCESS
-  ]));
-});
-
-$app->post('/password/change', function () use ($app) {
-  Helpers::checkForJsonRequest($app);
-
-  $body = json_decode($app->request()->getBody());
-
-  if (property_exists($body, 'recovery')) {
-    if (!property_exists($body, 'token')) {
-      Helpers::error(Constants::INVALID_PARAMETERS, "Missing recovery token", $app);
+    try {
+      mail($email, "Password reset requests", "here " . $jwt, null, '-f' . $stateManager->getMail());
+    } catch (Exception $ex) {
+      $success = false;
     }
 
-    $recoveryToken = $body->{'token'};
+    $app->response()->setBody(json_encode([
+      'success' => $success,
+      'token' => $jwt,
+      'code' => Constants::SUCCESS
+    ]));
+  });
 
-    if (empty($recoveryToken)) {
-      Helpers::error(Constants::UNAUTHORIZED, "Not authorized", $app);
+  $app->post('/change', 'json', function () use ($app) {
+    $stateManager = StateManager::getInstance();
+    $body = json_decode($app->request()->getBody());
+
+    if (property_exists($body, 'recovery')) {
+      if (!property_exists($body, 'token')) {
+        Helpers::error(Constants::INVALID_PARAMETERS, "Missing recovery token", $app);
+      }
+
+      $recoveryToken = $body->{'token'};
+
+      if (empty($recoveryToken)) {
+        Helpers::error(Constants::UNAUTHORIZED, "Not authorized", $app);
+      }
+
+      $validatedToken = Helpers::validateRecoveryToken($recoveryToken, $stateManager->getSecret(), $app);
+
+      if ($validatedToken == null) {
+        Helpers::error(Constants::UNAUTHORIZED, "Invalid Token", $app);
+      }
+
+      Helpers::changePassword($body, $app, $validatedToken);
+
+    } else {
+      $secret = $stateManager->getSecret();
+      $token = Helpers::getUserToken($app);
+      $validToken = Helpers::validateToken($token, $secret, $app);
+      Helpers::changePassword($body, $app, $validToken);
     }
+  });
 
-    $validatedToken = Helpers::validateRecoveryToken($recoveryToken, $secret, $app);
-
-    if ($validatedToken == null) {
-      Helpers::error(Constants::UNAUTHORIZED, "Invalid Token", $app);
-    }
-
-    Helpers::changePassword($body, $app, $validatedToken);
-
-  } else {
-    $validToken = Helpers::validateToken($token, $secret, $app);
-    Helpers::changePassword($body, $app, $validToken);
-  }
 });
 
 $response = $app->response();
