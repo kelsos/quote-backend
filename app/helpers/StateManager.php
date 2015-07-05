@@ -83,9 +83,9 @@ class StateManager
   protected function __construct()
   {
     $config = Yaml::parse(file_get_contents("../config.yaml"));
-    $secret = $config['secret'];
-    $mail = $config['mail'];
-    $development = strcmp($config['environment'], 'development') !== false;
+    $this->secret = $config['secret'];
+    $this->mail = $config['mail'];
+    $this->environment = $config['environment'];
   }
 
   /**
