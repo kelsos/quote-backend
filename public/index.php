@@ -5,7 +5,6 @@ const PASS_LENGTH = 4;
 require_once '../vendor/autoload.php';
 require_once '../generated-conf/config.php';
 
-use Exception;
 use Propel\Runtime\Map\TableMap;
 use Quote\Quote;
 use Quote\QuoteQuery;
