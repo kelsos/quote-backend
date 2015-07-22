@@ -71,6 +71,23 @@
       </unique>
     </table>
 
+    <table name="tag" phpName="Tag">
+        <column name="id" type="integer" required="true" primaryKey="true" autoIncrement="true"/>
+        <column name="name" type="varchar" size="255" required="true"/>
+    </table>
+
+    <table name="quote_tag" isCrossRef="true">
+        <column name="tag_id" type="integer" primaryKey="true"/>
+        <column name="quote_id" type="integer" primaryKey="true"/>
+
+        <foreign-key foreignTable="tag">
+            <reference local="tag_id" foreign="id"/>
+        </foreign-key>
+        <foreign-key foreignTable="quote">
+            <reference local="quote_id" foreign="id"/>
+        </foreign-key>
+    </table>
+
     <!--
         When you're done with editing, open a terminal and run
             `$ cd propel`
