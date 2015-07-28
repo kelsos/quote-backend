@@ -2,7 +2,6 @@
 
 namespace Quote\Base;
 
-use \DateTime;
 use \Exception;
 use \PDO;
 use Propel\Runtime\Propel;
@@ -17,28 +16,27 @@ use Propel\Runtime\Exception\LogicException;
 use Propel\Runtime\Exception\PropelException;
 use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Parser\AbstractParser;
-use Propel\Runtime\Util\PropelDateTime;
 use Quote\Quote as ChildQuote;
 use Quote\QuoteQuery as ChildQuoteQuery;
 use Quote\QuoteTag as ChildQuoteTag;
 use Quote\QuoteTagQuery as ChildQuoteTagQuery;
 use Quote\Tag as ChildTag;
 use Quote\TagQuery as ChildTagQuery;
-use Quote\Map\QuoteTableMap;
+use Quote\Map\TagTableMap;
 
 /**
- * Base class that represents a row from the 'quote' table.
+ * Base class that represents a row from the 'tag' table.
  *
  *
  *
 * @package    propel.generator.Quote.Base
 */
-abstract class Quote implements ActiveRecordInterface
+abstract class Tag implements ActiveRecordInterface
 {
     /**
      * TableMap class name
      */
-    const TABLE_MAP = '\\Quote\\Map\\QuoteTableMap';
+    const TABLE_MAP = '\\Quote\\Map\\TagTableMap';
 
 
     /**
@@ -74,22 +72,10 @@ abstract class Quote implements ActiveRecordInterface
     protected $id;
 
     /**
-     * The value for the title field.
+     * The value for the name field.
      * @var        string
      */
-    protected $title;
-
-    /**
-     * The value for the quote field.
-     * @var        string
-     */
-    protected $quote;
-
-    /**
-     * The value for the published field.
-     * @var        \DateTime
-     */
-    protected $published;
+    protected $name;
 
     /**
      * @var        ObjectCollection|ChildQuoteTag[] Collection to store aggregation of ChildQuoteTag objects.
@@ -98,14 +84,14 @@ abstract class Quote implements ActiveRecordInterface
     protected $collQuoteTagsPartial;
 
     /**
-     * @var        ObjectCollection|ChildTag[] Cross Collection to store aggregation of ChildTag objects.
+     * @var        ObjectCollection|ChildQuote[] Cross Collection to store aggregation of ChildQuote objects.
      */
-    protected $collTags;
+    protected $collQuotes;
 
     /**
      * @var bool
      */
-    protected $collTagsPartial;
+    protected $collQuotesPartial;
 
     /**
      * Flag to prevent endless save loop, if this object is referenced
@@ -117,9 +103,9 @@ abstract class Quote implements ActiveRecordInterface
 
     /**
      * An array of objects scheduled for deletion.
-     * @var ObjectCollection|ChildTag[]
+     * @var ObjectCollection|ChildQuote[]
      */
-    protected $tagsScheduledForDeletion = null;
+    protected $quotesScheduledForDeletion = null;
 
     /**
      * An array of objects scheduled for deletion.
@@ -128,7 +114,7 @@ abstract class Quote implements ActiveRecordInterface
     protected $quoteTagsScheduledForDeletion = null;
 
     /**
-     * Initializes internal state of Quote\Base\Quote object.
+     * Initializes internal state of Quote\Base\Tag object.
      */
     public function __construct()
     {
@@ -223,9 +209,9 @@ abstract class Quote implements ActiveRecordInterface
     }
 
     /**
-     * Compares this with another <code>Quote</code> instance.  If
-     * <code>obj</code> is an instance of <code>Quote</code>, delegates to
-     * <code>equals(Quote)</code>.  Otherwise, returns <code>false</code>.
+     * Compares this with another <code>Tag</code> instance.  If
+     * <code>obj</code> is an instance of <code>Tag</code>, delegates to
+     * <code>equals(Tag)</code>.  Otherwise, returns <code>false</code>.
      *
      * @param  mixed   $obj The object to compare to.
      * @return boolean Whether equal to the object specified.
@@ -291,7 +277,7 @@ abstract class Quote implements ActiveRecordInterface
      * @param string $name  The virtual column name
      * @param mixed  $value The value to give to the virtual column
      *
-     * @return $this|Quote The current object, for fluid interface
+     * @return $this|Tag The current object, for fluid interface
      */
     public function setVirtualColumn($name, $value)
     {
@@ -355,50 +341,20 @@ abstract class Quote implements ActiveRecordInterface
     }
 
     /**
-     * Get the [title] column value.
+     * Get the [name] column value.
      *
      * @return string
      */
-    public function getTitle()
+    public function getName()
     {
-        return $this->title;
-    }
-
-    /**
-     * Get the [quote] column value.
-     *
-     * @return string
-     */
-    public function getQuote()
-    {
-        return $this->quote;
-    }
-
-    /**
-     * Get the [optionally formatted] temporal [published] column value.
-     *
-     *
-     * @param      string $format The date/time format string (either date()-style or strftime()-style).
-     *                            If format is NULL, then the raw DateTime object will be returned.
-     *
-     * @return string|DateTime Formatted date/time value as string or DateTime object (if format is NULL), NULL if column is NULL, and 0 if column value is 0000-00-00 00:00:00
-     *
-     * @throws PropelException - if unable to parse/validate the date/time value.
-     */
-    public function getPublished($format = NULL)
-    {
-        if ($format === null) {
-            return $this->published;
-        } else {
-            return $this->published instanceof \DateTime ? $this->published->format($format) : null;
-        }
+        return $this->name;
     }
 
     /**
      * Set the value of [id] column.
      *
      * @param int $v new value
-     * @return $this|\Quote\Quote The current object (for fluent API support)
+     * @return $this|\Quote\Tag The current object (for fluent API support)
      */
     public function setId($v)
     {
@@ -408,71 +364,31 @@ abstract class Quote implements ActiveRecordInterface
 
         if ($this->id !== $v) {
             $this->id = $v;
-            $this->modifiedColumns[QuoteTableMap::COL_ID] = true;
+            $this->modifiedColumns[TagTableMap::COL_ID] = true;
         }
 
         return $this;
     } // setId()
 
     /**
-     * Set the value of [title] column.
+     * Set the value of [name] column.
      *
      * @param string $v new value
-     * @return $this|\Quote\Quote The current object (for fluent API support)
+     * @return $this|\Quote\Tag The current object (for fluent API support)
      */
-    public function setTitle($v)
+    public function setName($v)
     {
         if ($v !== null) {
             $v = (string) $v;
         }
 
-        if ($this->title !== $v) {
-            $this->title = $v;
-            $this->modifiedColumns[QuoteTableMap::COL_TITLE] = true;
+        if ($this->name !== $v) {
+            $this->name = $v;
+            $this->modifiedColumns[TagTableMap::COL_NAME] = true;
         }
 
         return $this;
-    } // setTitle()
-
-    /**
-     * Set the value of [quote] column.
-     *
-     * @param string $v new value
-     * @return $this|\Quote\Quote The current object (for fluent API support)
-     */
-    public function setQuote($v)
-    {
-        if ($v !== null) {
-            $v = (string) $v;
-        }
-
-        if ($this->quote !== $v) {
-            $this->quote = $v;
-            $this->modifiedColumns[QuoteTableMap::COL_QUOTE] = true;
-        }
-
-        return $this;
-    } // setQuote()
-
-    /**
-     * Sets the value of [published] column to a normalized version of the date/time value specified.
-     *
-     * @param  mixed $v string, integer (timestamp), or \DateTime value.
-     *               Empty strings are treated as NULL.
-     * @return $this|\Quote\Quote The current object (for fluent API support)
-     */
-    public function setPublished($v)
-    {
-        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
-        if ($this->published !== null || $dt !== null) {
-            if ($this->published === null || $dt === null || $dt->format("Y-m-d H:i:s") !== $this->published->format("Y-m-d H:i:s")) {
-                $this->published = $dt === null ? null : clone $dt;
-                $this->modifiedColumns[QuoteTableMap::COL_PUBLISHED] = true;
-            }
-        } // if either are not null
-
-        return $this;
-    } // setPublished()
+    } // setName()
 
     /**
      * Indicates whether the columns in this object are only set to default values.
@@ -510,20 +426,11 @@ abstract class Quote implements ActiveRecordInterface
     {
         try {
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 0 + $startcol : QuoteTableMap::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)];
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 0 + $startcol : TagTableMap::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)];
             $this->id = (null !== $col) ? (int) $col : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 1 + $startcol : QuoteTableMap::translateFieldName('Title', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->title = (null !== $col) ? (string) $col : null;
-
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : QuoteTableMap::translateFieldName('Quote', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->quote = (null !== $col) ? (string) $col : null;
-
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : QuoteTableMap::translateFieldName('Published', TableMap::TYPE_PHPNAME, $indexType)];
-            if ($col === '0000-00-00 00:00:00') {
-                $col = null;
-            }
-            $this->published = (null !== $col) ? PropelDateTime::newInstance($col, null, 'DateTime') : null;
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 1 + $startcol : TagTableMap::translateFieldName('Name', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->name = (null !== $col) ? (string) $col : null;
             $this->resetModified();
 
             $this->setNew(false);
@@ -532,10 +439,10 @@ abstract class Quote implements ActiveRecordInterface
                 $this->ensureConsistency();
             }
 
-            return $startcol + 4; // 4 = QuoteTableMap::NUM_HYDRATE_COLUMNS.
+            return $startcol + 2; // 2 = TagTableMap::NUM_HYDRATE_COLUMNS.
 
         } catch (Exception $e) {
-            throw new PropelException(sprintf('Error populating %s object', '\\Quote\\Quote'), 0, $e);
+            throw new PropelException(sprintf('Error populating %s object', '\\Quote\\Tag'), 0, $e);
         }
     }
 
@@ -577,13 +484,13 @@ abstract class Quote implements ActiveRecordInterface
         }
 
         if ($con === null) {
-            $con = Propel::getServiceContainer()->getReadConnection(QuoteTableMap::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getReadConnection(TagTableMap::DATABASE_NAME);
         }
 
         // We don't need to alter the object instance pool; we're just modifying this instance
         // already in the pool.
 
-        $dataFetcher = ChildQuoteQuery::create(null, $this->buildPkeyCriteria())->setFormatter(ModelCriteria::FORMAT_STATEMENT)->find($con);
+        $dataFetcher = ChildTagQuery::create(null, $this->buildPkeyCriteria())->setFormatter(ModelCriteria::FORMAT_STATEMENT)->find($con);
         $row = $dataFetcher->fetch();
         $dataFetcher->close();
         if (!$row) {
@@ -595,7 +502,7 @@ abstract class Quote implements ActiveRecordInterface
 
             $this->collQuoteTags = null;
 
-            $this->collTags = null;
+            $this->collQuotes = null;
         } // if (deep)
     }
 
@@ -605,8 +512,8 @@ abstract class Quote implements ActiveRecordInterface
      * @param      ConnectionInterface $con
      * @return void
      * @throws PropelException
-     * @see Quote::setDeleted()
-     * @see Quote::isDeleted()
+     * @see Tag::setDeleted()
+     * @see Tag::isDeleted()
      */
     public function delete(ConnectionInterface $con = null)
     {
@@ -615,11 +522,11 @@ abstract class Quote implements ActiveRecordInterface
         }
 
         if ($con === null) {
-            $con = Propel::getServiceContainer()->getWriteConnection(QuoteTableMap::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getWriteConnection(TagTableMap::DATABASE_NAME);
         }
 
         $con->transaction(function () use ($con) {
-            $deleteQuery = ChildQuoteQuery::create()
+            $deleteQuery = ChildTagQuery::create()
                 ->filterByPrimaryKey($this->getPrimaryKey());
             $ret = $this->preDelete($con);
             if ($ret) {
@@ -650,7 +557,7 @@ abstract class Quote implements ActiveRecordInterface
         }
 
         if ($con === null) {
-            $con = Propel::getServiceContainer()->getWriteConnection(QuoteTableMap::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getWriteConnection(TagTableMap::DATABASE_NAME);
         }
 
         return $con->transaction(function () use ($con) {
@@ -669,7 +576,7 @@ abstract class Quote implements ActiveRecordInterface
                     $this->postUpdate($con);
                 }
                 $this->postSave($con);
-                QuoteTableMap::addInstanceToPool($this);
+                TagTableMap::addInstanceToPool($this);
             } else {
                 $affectedRows = 0;
             }
@@ -706,14 +613,14 @@ abstract class Quote implements ActiveRecordInterface
                 $this->resetModified();
             }
 
-            if ($this->tagsScheduledForDeletion !== null) {
-                if (!$this->tagsScheduledForDeletion->isEmpty()) {
+            if ($this->quotesScheduledForDeletion !== null) {
+                if (!$this->quotesScheduledForDeletion->isEmpty()) {
                     $pks = array();
-                    foreach ($this->tagsScheduledForDeletion as $entry) {
+                    foreach ($this->quotesScheduledForDeletion as $entry) {
                         $entryPk = [];
 
-                        $entryPk[1] = $this->getId();
-                        $entryPk[0] = $entry->getId();
+                        $entryPk[0] = $this->getId();
+                        $entryPk[1] = $entry->getId();
                         $pks[] = $entryPk;
                     }
 
@@ -721,15 +628,15 @@ abstract class Quote implements ActiveRecordInterface
                         ->filterByPrimaryKeys($pks)
                         ->delete($con);
 
-                    $this->tagsScheduledForDeletion = null;
+                    $this->quotesScheduledForDeletion = null;
                 }
 
             }
 
-            if ($this->collTags) {
-                foreach ($this->collTags as $tag) {
-                    if (!$tag->isDeleted() && ($tag->isNew() || $tag->isModified())) {
-                        $tag->save($con);
+            if ($this->collQuotes) {
+                foreach ($this->collQuotes as $quote) {
+                    if (!$quote->isDeleted() && ($quote->isNew() || $quote->isModified())) {
+                        $quote->save($con);
                     }
                 }
             }
@@ -772,27 +679,21 @@ abstract class Quote implements ActiveRecordInterface
         $modifiedColumns = array();
         $index = 0;
 
-        $this->modifiedColumns[QuoteTableMap::COL_ID] = true;
+        $this->modifiedColumns[TagTableMap::COL_ID] = true;
         if (null !== $this->id) {
-            throw new PropelException('Cannot insert a value for auto-increment primary key (' . QuoteTableMap::COL_ID . ')');
+            throw new PropelException('Cannot insert a value for auto-increment primary key (' . TagTableMap::COL_ID . ')');
         }
 
          // check the columns in natural order for more readable SQL queries
-        if ($this->isColumnModified(QuoteTableMap::COL_ID)) {
+        if ($this->isColumnModified(TagTableMap::COL_ID)) {
             $modifiedColumns[':p' . $index++]  = 'id';
         }
-        if ($this->isColumnModified(QuoteTableMap::COL_TITLE)) {
-            $modifiedColumns[':p' . $index++]  = 'title';
-        }
-        if ($this->isColumnModified(QuoteTableMap::COL_QUOTE)) {
-            $modifiedColumns[':p' . $index++]  = 'quote';
-        }
-        if ($this->isColumnModified(QuoteTableMap::COL_PUBLISHED)) {
-            $modifiedColumns[':p' . $index++]  = 'published';
+        if ($this->isColumnModified(TagTableMap::COL_NAME)) {
+            $modifiedColumns[':p' . $index++]  = 'name';
         }
 
         $sql = sprintf(
-            'INSERT INTO quote (%s) VALUES (%s)',
+            'INSERT INTO tag (%s) VALUES (%s)',
             implode(', ', $modifiedColumns),
             implode(', ', array_keys($modifiedColumns))
         );
@@ -804,14 +705,8 @@ abstract class Quote implements ActiveRecordInterface
                     case 'id':
                         $stmt->bindValue($identifier, $this->id, PDO::PARAM_INT);
                         break;
-                    case 'title':
-                        $stmt->bindValue($identifier, $this->title, PDO::PARAM_STR);
-                        break;
-                    case 'quote':
-                        $stmt->bindValue($identifier, $this->quote, PDO::PARAM_STR);
-                        break;
-                    case 'published':
-                        $stmt->bindValue($identifier, $this->published ? $this->published->format("Y-m-d H:i:s") : null, PDO::PARAM_STR);
+                    case 'name':
+                        $stmt->bindValue($identifier, $this->name, PDO::PARAM_STR);
                         break;
                 }
             }
@@ -859,7 +754,7 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function getByName($name, $type = TableMap::TYPE_PHPNAME)
     {
-        $pos = QuoteTableMap::translateFieldName($name, $type, TableMap::TYPE_NUM);
+        $pos = TagTableMap::translateFieldName($name, $type, TableMap::TYPE_NUM);
         $field = $this->getByPosition($pos);
 
         return $field;
@@ -879,13 +774,7 @@ abstract class Quote implements ActiveRecordInterface
                 return $this->getId();
                 break;
             case 1:
-                return $this->getTitle();
-                break;
-            case 2:
-                return $this->getQuote();
-                break;
-            case 3:
-                return $this->getPublished();
+                return $this->getName();
                 break;
             default:
                 return null;
@@ -911,25 +800,15 @@ abstract class Quote implements ActiveRecordInterface
     public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array(), $includeForeignObjects = false)
     {
 
-        if (isset($alreadyDumpedObjects['Quote'][$this->hashCode()])) {
+        if (isset($alreadyDumpedObjects['Tag'][$this->hashCode()])) {
             return '*RECURSION*';
         }
-        $alreadyDumpedObjects['Quote'][$this->hashCode()] = true;
-        $keys = QuoteTableMap::getFieldNames($keyType);
+        $alreadyDumpedObjects['Tag'][$this->hashCode()] = true;
+        $keys = TagTableMap::getFieldNames($keyType);
         $result = array(
             $keys[0] => $this->getId(),
-            $keys[1] => $this->getTitle(),
-            $keys[2] => $this->getQuote(),
-            $keys[3] => $this->getPublished(),
+            $keys[1] => $this->getName(),
         );
-
-        $utc = new \DateTimeZone('utc');
-        if ($result[$keys[3]] instanceof \DateTime) {
-            // When changing timezone we don't want to change existing instances
-            $dateTime = clone $result[$keys[3]];
-            $result[$keys[3]] = $dateTime->setTimezone($utc)->format('Y-m-d\TH:i:s\Z');
-        }
-
         $virtualColumns = $this->virtualColumns;
         foreach ($virtualColumns as $key => $virtualColumn) {
             $result[$key] = $virtualColumn;
@@ -965,11 +844,11 @@ abstract class Quote implements ActiveRecordInterface
      *                one of the class type constants TableMap::TYPE_PHPNAME, TableMap::TYPE_CAMELNAME
      *                TableMap::TYPE_COLNAME, TableMap::TYPE_FIELDNAME, TableMap::TYPE_NUM.
      *                Defaults to TableMap::TYPE_PHPNAME.
-     * @return $this|\Quote\Quote
+     * @return $this|\Quote\Tag
      */
     public function setByName($name, $value, $type = TableMap::TYPE_PHPNAME)
     {
-        $pos = QuoteTableMap::translateFieldName($name, $type, TableMap::TYPE_NUM);
+        $pos = TagTableMap::translateFieldName($name, $type, TableMap::TYPE_NUM);
 
         return $this->setByPosition($pos, $value);
     }
@@ -980,7 +859,7 @@ abstract class Quote implements ActiveRecordInterface
      *
      * @param  int $pos position in xml schema
      * @param  mixed $value field value
-     * @return $this|\Quote\Quote
+     * @return $this|\Quote\Tag
      */
     public function setByPosition($pos, $value)
     {
@@ -989,13 +868,7 @@ abstract class Quote implements ActiveRecordInterface
                 $this->setId($value);
                 break;
             case 1:
-                $this->setTitle($value);
-                break;
-            case 2:
-                $this->setQuote($value);
-                break;
-            case 3:
-                $this->setPublished($value);
+                $this->setName($value);
                 break;
         } // switch()
 
@@ -1021,19 +894,13 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function fromArray($arr, $keyType = TableMap::TYPE_PHPNAME)
     {
-        $keys = QuoteTableMap::getFieldNames($keyType);
+        $keys = TagTableMap::getFieldNames($keyType);
 
         if (array_key_exists($keys[0], $arr)) {
             $this->setId($arr[$keys[0]]);
         }
         if (array_key_exists($keys[1], $arr)) {
-            $this->setTitle($arr[$keys[1]]);
-        }
-        if (array_key_exists($keys[2], $arr)) {
-            $this->setQuote($arr[$keys[2]]);
-        }
-        if (array_key_exists($keys[3], $arr)) {
-            $this->setPublished($arr[$keys[3]]);
+            $this->setName($arr[$keys[1]]);
         }
     }
 
@@ -1054,7 +921,7 @@ abstract class Quote implements ActiveRecordInterface
      * @param string $data The source data to import from
      * @param string $keyType The type of keys the array uses.
      *
-     * @return $this|\Quote\Quote The current object, for fluid interface
+     * @return $this|\Quote\Tag The current object, for fluid interface
      */
     public function importFrom($parser, $data, $keyType = TableMap::TYPE_PHPNAME)
     {
@@ -1074,19 +941,13 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function buildCriteria()
     {
-        $criteria = new Criteria(QuoteTableMap::DATABASE_NAME);
+        $criteria = new Criteria(TagTableMap::DATABASE_NAME);
 
-        if ($this->isColumnModified(QuoteTableMap::COL_ID)) {
-            $criteria->add(QuoteTableMap::COL_ID, $this->id);
+        if ($this->isColumnModified(TagTableMap::COL_ID)) {
+            $criteria->add(TagTableMap::COL_ID, $this->id);
         }
-        if ($this->isColumnModified(QuoteTableMap::COL_TITLE)) {
-            $criteria->add(QuoteTableMap::COL_TITLE, $this->title);
-        }
-        if ($this->isColumnModified(QuoteTableMap::COL_QUOTE)) {
-            $criteria->add(QuoteTableMap::COL_QUOTE, $this->quote);
-        }
-        if ($this->isColumnModified(QuoteTableMap::COL_PUBLISHED)) {
-            $criteria->add(QuoteTableMap::COL_PUBLISHED, $this->published);
+        if ($this->isColumnModified(TagTableMap::COL_NAME)) {
+            $criteria->add(TagTableMap::COL_NAME, $this->name);
         }
 
         return $criteria;
@@ -1104,8 +965,8 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function buildPkeyCriteria()
     {
-        $criteria = ChildQuoteQuery::create();
-        $criteria->add(QuoteTableMap::COL_ID, $this->id);
+        $criteria = ChildTagQuery::create();
+        $criteria->add(TagTableMap::COL_ID, $this->id);
 
         return $criteria;
     }
@@ -1167,16 +1028,14 @@ abstract class Quote implements ActiveRecordInterface
      * If desired, this method can also make copies of all associated (fkey referrers)
      * objects.
      *
-     * @param      object $copyObj An object of \Quote\Quote (or compatible) type.
+     * @param      object $copyObj An object of \Quote\Tag (or compatible) type.
      * @param      boolean $deepCopy Whether to also copy all rows that refer (by fkey) to the current row.
      * @param      boolean $makeNew Whether to reset autoincrement PKs and make the object new.
      * @throws PropelException
      */
     public function copyInto($copyObj, $deepCopy = false, $makeNew = true)
     {
-        $copyObj->setTitle($this->getTitle());
-        $copyObj->setQuote($this->getQuote());
-        $copyObj->setPublished($this->getPublished());
+        $copyObj->setName($this->getName());
 
         if ($deepCopy) {
             // important: temporarily setNew(false) because this affects the behavior of
@@ -1206,7 +1065,7 @@ abstract class Quote implements ActiveRecordInterface
      * objects.
      *
      * @param  boolean $deepCopy Whether to also copy all rows that refer (by fkey) to the current row.
-     * @return \Quote\Quote Clone of current object.
+     * @return \Quote\Tag Clone of current object.
      * @throws PropelException
      */
     public function copy($deepCopy = false)
@@ -1284,7 +1143,7 @@ abstract class Quote implements ActiveRecordInterface
      * If the $criteria is not null, it is used to always fetch the results from the database.
      * Otherwise the results are fetched from the database the first time, then cached.
      * Next time the same method is called without $criteria, the cached collection is returned.
-     * If this ChildQuote is new, it will return
+     * If this ChildTag is new, it will return
      * an empty collection or the current collection; the criteria is ignored on a new object.
      *
      * @param      Criteria $criteria optional Criteria object to narrow the query
@@ -1301,7 +1160,7 @@ abstract class Quote implements ActiveRecordInterface
                 $this->initQuoteTags();
             } else {
                 $collQuoteTags = ChildQuoteTagQuery::create(null, $criteria)
-                    ->filterByQuote($this)
+                    ->filterByTag($this)
                     ->find($con);
 
                 if (null !== $criteria) {
@@ -1344,7 +1203,7 @@ abstract class Quote implements ActiveRecordInterface
      *
      * @param      Collection $quoteTags A Propel collection.
      * @param      ConnectionInterface $con Optional connection object
-     * @return $this|ChildQuote The current object (for fluent API support)
+     * @return $this|ChildTag The current object (for fluent API support)
      */
     public function setQuoteTags(Collection $quoteTags, ConnectionInterface $con = null)
     {
@@ -1358,7 +1217,7 @@ abstract class Quote implements ActiveRecordInterface
         $this->quoteTagsScheduledForDeletion = clone $quoteTagsToDelete;
 
         foreach ($quoteTagsToDelete as $quoteTagRemoved) {
-            $quoteTagRemoved->setQuote(null);
+            $quoteTagRemoved->setTag(null);
         }
 
         $this->collQuoteTags = null;
@@ -1399,7 +1258,7 @@ abstract class Quote implements ActiveRecordInterface
             }
 
             return $query
-                ->filterByQuote($this)
+                ->filterByTag($this)
                 ->count($con);
         }
 
@@ -1411,7 +1270,7 @@ abstract class Quote implements ActiveRecordInterface
      * through the ChildQuoteTag foreign key attribute.
      *
      * @param  ChildQuoteTag $l ChildQuoteTag
-     * @return $this|\Quote\Quote The current object (for fluent API support)
+     * @return $this|\Quote\Tag The current object (for fluent API support)
      */
     public function addQuoteTag(ChildQuoteTag $l)
     {
@@ -1433,12 +1292,12 @@ abstract class Quote implements ActiveRecordInterface
     protected function doAddQuoteTag(ChildQuoteTag $quoteTag)
     {
         $this->collQuoteTags[]= $quoteTag;
-        $quoteTag->setQuote($this);
+        $quoteTag->setTag($this);
     }
 
     /**
      * @param  ChildQuoteTag $quoteTag The ChildQuoteTag object to remove.
-     * @return $this|ChildQuote The current object (for fluent API support)
+     * @return $this|ChildTag The current object (for fluent API support)
      */
     public function removeQuoteTag(ChildQuoteTag $quoteTag)
     {
@@ -1450,7 +1309,7 @@ abstract class Quote implements ActiveRecordInterface
                 $this->quoteTagsScheduledForDeletion->clear();
             }
             $this->quoteTagsScheduledForDeletion[]= clone $quoteTag;
-            $quoteTag->setQuote(null);
+            $quoteTag->setTag(null);
         }
 
         return $this;
@@ -1460,204 +1319,204 @@ abstract class Quote implements ActiveRecordInterface
     /**
      * If this collection has already been initialized with
      * an identical criteria, it returns the collection.
-     * Otherwise if this Quote is new, it will return
-     * an empty collection; or if this Quote has previously
+     * Otherwise if this Tag is new, it will return
+     * an empty collection; or if this Tag has previously
      * been saved, it will retrieve related QuoteTags from storage.
      *
      * This method is protected by default in order to keep the public
      * api reasonable.  You can provide public methods for those you
-     * actually need in Quote.
+     * actually need in Tag.
      *
      * @param      Criteria $criteria optional Criteria object to narrow the query
      * @param      ConnectionInterface $con optional connection object
      * @param      string $joinBehavior optional join type to use (defaults to Criteria::LEFT_JOIN)
      * @return ObjectCollection|ChildQuoteTag[] List of ChildQuoteTag objects
      */
-    public function getQuoteTagsJoinTag(Criteria $criteria = null, ConnectionInterface $con = null, $joinBehavior = Criteria::LEFT_JOIN)
+    public function getQuoteTagsJoinQuote(Criteria $criteria = null, ConnectionInterface $con = null, $joinBehavior = Criteria::LEFT_JOIN)
     {
         $query = ChildQuoteTagQuery::create(null, $criteria);
-        $query->joinWith('Tag', $joinBehavior);
+        $query->joinWith('Quote', $joinBehavior);
 
         return $this->getQuoteTags($query, $con);
     }
 
     /**
-     * Clears out the collTags collection
+     * Clears out the collQuotes collection
      *
      * This does not modify the database; however, it will remove any associated objects, causing
      * them to be refetched by subsequent calls to accessor method.
      *
      * @return void
-     * @see        addTags()
+     * @see        addQuotes()
      */
-    public function clearTags()
+    public function clearQuotes()
     {
-        $this->collTags = null; // important to set this to NULL since that means it is uninitialized
+        $this->collQuotes = null; // important to set this to NULL since that means it is uninitialized
     }
 
     /**
-     * Initializes the collTags crossRef collection.
+     * Initializes the collQuotes crossRef collection.
      *
-     * By default this just sets the collTags collection to an empty collection (like clearTags());
+     * By default this just sets the collQuotes collection to an empty collection (like clearQuotes());
      * however, you may wish to override this method in your stub class to provide setting appropriate
      * to your application -- for example, setting the initial array to the values stored in database.
      *
      * @return void
      */
-    public function initTags()
+    public function initQuotes()
     {
-        $this->collTags = new ObjectCollection();
-        $this->collTagsPartial = true;
+        $this->collQuotes = new ObjectCollection();
+        $this->collQuotesPartial = true;
 
-        $this->collTags->setModel('\Quote\Tag');
+        $this->collQuotes->setModel('\Quote\Quote');
     }
 
     /**
-     * Checks if the collTags collection is loaded.
+     * Checks if the collQuotes collection is loaded.
      *
      * @return bool
      */
-    public function isTagsLoaded()
+    public function isQuotesLoaded()
     {
-        return null !== $this->collTags;
+        return null !== $this->collQuotes;
     }
 
     /**
-     * Gets a collection of ChildTag objects related by a many-to-many relationship
+     * Gets a collection of ChildQuote objects related by a many-to-many relationship
      * to the current object by way of the quote_tag cross-reference table.
      *
      * If the $criteria is not null, it is used to always fetch the results from the database.
      * Otherwise the results are fetched from the database the first time, then cached.
      * Next time the same method is called without $criteria, the cached collection is returned.
-     * If this ChildQuote is new, it will return
+     * If this ChildTag is new, it will return
      * an empty collection or the current collection; the criteria is ignored on a new object.
      *
      * @param      Criteria $criteria Optional query object to filter the query
      * @param      ConnectionInterface $con Optional connection object
      *
-     * @return ObjectCollection|ChildTag[] List of ChildTag objects
+     * @return ObjectCollection|ChildQuote[] List of ChildQuote objects
      */
-    public function getTags(Criteria $criteria = null, ConnectionInterface $con = null)
+    public function getQuotes(Criteria $criteria = null, ConnectionInterface $con = null)
     {
-        $partial = $this->collTagsPartial && !$this->isNew();
-        if (null === $this->collTags || null !== $criteria || $partial) {
+        $partial = $this->collQuotesPartial && !$this->isNew();
+        if (null === $this->collQuotes || null !== $criteria || $partial) {
             if ($this->isNew()) {
                 // return empty collection
-                if (null === $this->collTags) {
-                    $this->initTags();
+                if (null === $this->collQuotes) {
+                    $this->initQuotes();
                 }
             } else {
 
-                $query = ChildTagQuery::create(null, $criteria)
-                    ->filterByQuote($this);
-                $collTags = $query->find($con);
+                $query = ChildQuoteQuery::create(null, $criteria)
+                    ->filterByTag($this);
+                $collQuotes = $query->find($con);
                 if (null !== $criteria) {
-                    return $collTags;
+                    return $collQuotes;
                 }
 
-                if ($partial && $this->collTags) {
+                if ($partial && $this->collQuotes) {
                     //make sure that already added objects gets added to the list of the database.
-                    foreach ($this->collTags as $obj) {
-                        if (!$collTags->contains($obj)) {
-                            $collTags[] = $obj;
+                    foreach ($this->collQuotes as $obj) {
+                        if (!$collQuotes->contains($obj)) {
+                            $collQuotes[] = $obj;
                         }
                     }
                 }
 
-                $this->collTags = $collTags;
-                $this->collTagsPartial = false;
+                $this->collQuotes = $collQuotes;
+                $this->collQuotesPartial = false;
             }
         }
 
-        return $this->collTags;
+        return $this->collQuotes;
     }
 
     /**
-     * Sets a collection of Tag objects related by a many-to-many relationship
+     * Sets a collection of Quote objects related by a many-to-many relationship
      * to the current object by way of the quote_tag cross-reference table.
      * It will also schedule objects for deletion based on a diff between old objects (aka persisted)
      * and new objects from the given Propel collection.
      *
-     * @param  Collection $tags A Propel collection.
+     * @param  Collection $quotes A Propel collection.
      * @param  ConnectionInterface $con Optional connection object
-     * @return $this|ChildQuote The current object (for fluent API support)
+     * @return $this|ChildTag The current object (for fluent API support)
      */
-    public function setTags(Collection $tags, ConnectionInterface $con = null)
+    public function setQuotes(Collection $quotes, ConnectionInterface $con = null)
     {
-        $this->clearTags();
-        $currentTags = $this->getTags();
+        $this->clearQuotes();
+        $currentQuotes = $this->getQuotes();
 
-        $tagsScheduledForDeletion = $currentTags->diff($tags);
+        $quotesScheduledForDeletion = $currentQuotes->diff($quotes);
 
-        foreach ($tagsScheduledForDeletion as $toDelete) {
-            $this->removeTag($toDelete);
+        foreach ($quotesScheduledForDeletion as $toDelete) {
+            $this->removeQuote($toDelete);
         }
 
-        foreach ($tags as $tag) {
-            if (!$currentTags->contains($tag)) {
-                $this->doAddTag($tag);
+        foreach ($quotes as $quote) {
+            if (!$currentQuotes->contains($quote)) {
+                $this->doAddQuote($quote);
             }
         }
 
-        $this->collTagsPartial = false;
-        $this->collTags = $tags;
+        $this->collQuotesPartial = false;
+        $this->collQuotes = $quotes;
 
         return $this;
     }
 
     /**
-     * Gets the number of Tag objects related by a many-to-many relationship
+     * Gets the number of Quote objects related by a many-to-many relationship
      * to the current object by way of the quote_tag cross-reference table.
      *
      * @param      Criteria $criteria Optional query object to filter the query
      * @param      boolean $distinct Set to true to force count distinct
      * @param      ConnectionInterface $con Optional connection object
      *
-     * @return int the number of related Tag objects
+     * @return int the number of related Quote objects
      */
-    public function countTags(Criteria $criteria = null, $distinct = false, ConnectionInterface $con = null)
+    public function countQuotes(Criteria $criteria = null, $distinct = false, ConnectionInterface $con = null)
     {
-        $partial = $this->collTagsPartial && !$this->isNew();
-        if (null === $this->collTags || null !== $criteria || $partial) {
-            if ($this->isNew() && null === $this->collTags) {
+        $partial = $this->collQuotesPartial && !$this->isNew();
+        if (null === $this->collQuotes || null !== $criteria || $partial) {
+            if ($this->isNew() && null === $this->collQuotes) {
                 return 0;
             } else {
 
                 if ($partial && !$criteria) {
-                    return count($this->getTags());
+                    return count($this->getQuotes());
                 }
 
-                $query = ChildTagQuery::create(null, $criteria);
+                $query = ChildQuoteQuery::create(null, $criteria);
                 if ($distinct) {
                     $query->distinct();
                 }
 
                 return $query
-                    ->filterByQuote($this)
+                    ->filterByTag($this)
                     ->count($con);
             }
         } else {
-            return count($this->collTags);
+            return count($this->collQuotes);
         }
     }
 
     /**
-     * Associate a ChildTag to this object
+     * Associate a ChildQuote to this object
      * through the quote_tag cross reference table.
      *
-     * @param ChildTag $tag
-     * @return ChildQuote The current object (for fluent API support)
+     * @param ChildQuote $quote
+     * @return ChildTag The current object (for fluent API support)
      */
-    public function addTag(ChildTag $tag)
+    public function addQuote(ChildQuote $quote)
     {
-        if ($this->collTags === null) {
-            $this->initTags();
+        if ($this->collQuotes === null) {
+            $this->initQuotes();
         }
 
-        if (!$this->getTags()->contains($tag)) {
+        if (!$this->getQuotes()->contains($quote)) {
             // only add it if the **same** object is not already associated
-            $this->collTags->push($tag);
-            $this->doAddTag($tag);
+            $this->collQuotes->push($quote);
+            $this->doAddQuote($quote);
         }
 
         return $this;
@@ -1665,58 +1524,58 @@ abstract class Quote implements ActiveRecordInterface
 
     /**
      *
-     * @param ChildTag $tag
+     * @param ChildQuote $quote
      */
-    protected function doAddTag(ChildTag $tag)
+    protected function doAddQuote(ChildQuote $quote)
     {
         $quoteTag = new ChildQuoteTag();
 
-        $quoteTag->setTag($tag);
+        $quoteTag->setQuote($quote);
 
-        $quoteTag->setQuote($this);
+        $quoteTag->setTag($this);
 
         $this->addQuoteTag($quoteTag);
 
         // set the back reference to this object directly as using provided method either results
         // in endless loop or in multiple relations
-        if (!$tag->isQuotesLoaded()) {
-            $tag->initQuotes();
-            $tag->getQuotes()->push($this);
-        } elseif (!$tag->getQuotes()->contains($this)) {
-            $tag->getQuotes()->push($this);
+        if (!$quote->isTagsLoaded()) {
+            $quote->initTags();
+            $quote->getTags()->push($this);
+        } elseif (!$quote->getTags()->contains($this)) {
+            $quote->getTags()->push($this);
         }
 
     }
 
     /**
-     * Remove tag of this object
+     * Remove quote of this object
      * through the quote_tag cross reference table.
      *
-     * @param ChildTag $tag
-     * @return ChildQuote The current object (for fluent API support)
+     * @param ChildQuote $quote
+     * @return ChildTag The current object (for fluent API support)
      */
-    public function removeTag(ChildTag $tag)
+    public function removeQuote(ChildQuote $quote)
     {
-        if ($this->getTags()->contains($tag)) { $quoteTag = new ChildQuoteTag();
+        if ($this->getQuotes()->contains($quote)) { $quoteTag = new ChildQuoteTag();
 
-            $quoteTag->setTag($tag);
-            if ($tag->isQuotesLoaded()) {
+            $quoteTag->setQuote($quote);
+            if ($quote->isTagsLoaded()) {
                 //remove the back reference if available
-                $tag->getQuotes()->removeObject($this);
+                $quote->getTags()->removeObject($this);
             }
 
-            $quoteTag->setQuote($this);
+            $quoteTag->setTag($this);
             $this->removeQuoteTag(clone $quoteTag);
             $quoteTag->clear();
 
-            $this->collTags->remove($this->collTags->search($tag));
+            $this->collQuotes->remove($this->collQuotes->search($quote));
 
-            if (null === $this->tagsScheduledForDeletion) {
-                $this->tagsScheduledForDeletion = clone $this->collTags;
-                $this->tagsScheduledForDeletion->clear();
+            if (null === $this->quotesScheduledForDeletion) {
+                $this->quotesScheduledForDeletion = clone $this->collQuotes;
+                $this->quotesScheduledForDeletion->clear();
             }
 
-            $this->tagsScheduledForDeletion->push($tag);
+            $this->quotesScheduledForDeletion->push($quote);
         }
 
 
@@ -1731,9 +1590,7 @@ abstract class Quote implements ActiveRecordInterface
     public function clear()
     {
         $this->id = null;
-        $this->title = null;
-        $this->quote = null;
-        $this->published = null;
+        $this->name = null;
         $this->alreadyInSave = false;
         $this->clearAllReferences();
         $this->resetModified();
@@ -1757,15 +1614,15 @@ abstract class Quote implements ActiveRecordInterface
                     $o->clearAllReferences($deep);
                 }
             }
-            if ($this->collTags) {
-                foreach ($this->collTags as $o) {
+            if ($this->collQuotes) {
+                foreach ($this->collQuotes as $o) {
                     $o->clearAllReferences($deep);
                 }
             }
         } // if ($deep)
 
         $this->collQuoteTags = null;
-        $this->collTags = null;
+        $this->collQuotes = null;
     }
 
     /**
@@ -1775,7 +1632,7 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function __toString()
     {
-        return (string) $this->exportTo(QuoteTableMap::DEFAULT_STRING_FORMAT);
+        return (string) $this->exportTo(TagTableMap::DEFAULT_STRING_FORMAT);
     }
 
     /**

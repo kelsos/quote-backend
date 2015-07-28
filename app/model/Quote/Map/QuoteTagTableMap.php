@@ -11,12 +11,12 @@ use Propel\Runtime\Exception\PropelException;
 use Propel\Runtime\Map\RelationMap;
 use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Map\TableMapTrait;
-use Quote\Quote;
-use Quote\QuoteQuery;
+use Quote\QuoteTag;
+use Quote\QuoteTagQuery;
 
 
 /**
- * This class defines the structure of the 'quote' table.
+ * This class defines the structure of the 'quote_tag' table.
  *
  *
  *
@@ -26,7 +26,7 @@ use Quote\QuoteQuery;
  * (i.e. if it's a text column type).
  *
  */
-class QuoteTableMap extends TableMap
+class QuoteTagTableMap extends TableMap
 {
     use InstancePoolTrait;
     use TableMapTrait;
@@ -34,7 +34,7 @@ class QuoteTableMap extends TableMap
     /**
      * The (dot-path) name of this class
      */
-    const CLASS_NAME = 'Quote.Map.QuoteTableMap';
+    const CLASS_NAME = 'Quote.Map.QuoteTagTableMap';
 
     /**
      * The default database name for this class
@@ -44,22 +44,22 @@ class QuoteTableMap extends TableMap
     /**
      * The table name for this class
      */
-    const TABLE_NAME = 'quote';
+    const TABLE_NAME = 'quote_tag';
 
     /**
      * The related Propel class for this table
      */
-    const OM_CLASS = '\\Quote\\Quote';
+    const OM_CLASS = '\\Quote\\QuoteTag';
 
     /**
      * A class that can be returned by this tableMap
      */
-    const CLASS_DEFAULT = 'Quote.Quote';
+    const CLASS_DEFAULT = 'Quote.QuoteTag';
 
     /**
      * The total number of columns
      */
-    const NUM_COLUMNS = 4;
+    const NUM_COLUMNS = 2;
 
     /**
      * The number of lazy-loaded columns
@@ -69,27 +69,17 @@ class QuoteTableMap extends TableMap
     /**
      * The number of columns to hydrate (NUM_COLUMNS - NUM_LAZY_LOAD_COLUMNS)
      */
-    const NUM_HYDRATE_COLUMNS = 4;
+    const NUM_HYDRATE_COLUMNS = 2;
 
     /**
-     * the column name for the id field
+     * the column name for the tag_id field
      */
-    const COL_ID = 'quote.id';
+    const COL_TAG_ID = 'quote_tag.tag_id';
 
     /**
-     * the column name for the title field
+     * the column name for the quote_id field
      */
-    const COL_TITLE = 'quote.title';
-
-    /**
-     * the column name for the quote field
-     */
-    const COL_QUOTE = 'quote.quote';
-
-    /**
-     * the column name for the published field
-     */
-    const COL_PUBLISHED = 'quote.published';
+    const COL_QUOTE_ID = 'quote_tag.quote_id';
 
     /**
      * The default string format for model objects of the related table
@@ -103,11 +93,11 @@ class QuoteTableMap extends TableMap
      * e.g. self::$fieldNames[self::TYPE_PHPNAME][0] = 'Id'
      */
     protected static $fieldNames = array (
-        self::TYPE_PHPNAME       => array('Id', 'Title', 'Quote', 'Published', ),
-        self::TYPE_CAMELNAME     => array('id', 'title', 'quote', 'published', ),
-        self::TYPE_COLNAME       => array(QuoteTableMap::COL_ID, QuoteTableMap::COL_TITLE, QuoteTableMap::COL_QUOTE, QuoteTableMap::COL_PUBLISHED, ),
-        self::TYPE_FIELDNAME     => array('id', 'title', 'quote', 'published', ),
-        self::TYPE_NUM           => array(0, 1, 2, 3, )
+        self::TYPE_PHPNAME       => array('TagId', 'QuoteId', ),
+        self::TYPE_CAMELNAME     => array('tagId', 'quoteId', ),
+        self::TYPE_COLNAME       => array(QuoteTagTableMap::COL_TAG_ID, QuoteTagTableMap::COL_QUOTE_ID, ),
+        self::TYPE_FIELDNAME     => array('tag_id', 'quote_id', ),
+        self::TYPE_NUM           => array(0, 1, )
     );
 
     /**
@@ -117,11 +107,11 @@ class QuoteTableMap extends TableMap
      * e.g. self::$fieldKeys[self::TYPE_PHPNAME]['Id'] = 0
      */
     protected static $fieldKeys = array (
-        self::TYPE_PHPNAME       => array('Id' => 0, 'Title' => 1, 'Quote' => 2, 'Published' => 3, ),
-        self::TYPE_CAMELNAME     => array('id' => 0, 'title' => 1, 'quote' => 2, 'published' => 3, ),
-        self::TYPE_COLNAME       => array(QuoteTableMap::COL_ID => 0, QuoteTableMap::COL_TITLE => 1, QuoteTableMap::COL_QUOTE => 2, QuoteTableMap::COL_PUBLISHED => 3, ),
-        self::TYPE_FIELDNAME     => array('id' => 0, 'title' => 1, 'quote' => 2, 'published' => 3, ),
-        self::TYPE_NUM           => array(0, 1, 2, 3, )
+        self::TYPE_PHPNAME       => array('TagId' => 0, 'QuoteId' => 1, ),
+        self::TYPE_CAMELNAME     => array('tagId' => 0, 'quoteId' => 1, ),
+        self::TYPE_COLNAME       => array(QuoteTagTableMap::COL_TAG_ID => 0, QuoteTagTableMap::COL_QUOTE_ID => 1, ),
+        self::TYPE_FIELDNAME     => array('tag_id' => 0, 'quote_id' => 1, ),
+        self::TYPE_NUM           => array(0, 1, )
     );
 
     /**
@@ -134,17 +124,16 @@ class QuoteTableMap extends TableMap
     public function initialize()
     {
         // attributes
-        $this->setName('quote');
-        $this->setPhpName('Quote');
+        $this->setName('quote_tag');
+        $this->setPhpName('QuoteTag');
         $this->setIdentifierQuoting(false);
-        $this->setClassName('\\Quote\\Quote');
+        $this->setClassName('\\Quote\\QuoteTag');
         $this->setPackage('Quote');
-        $this->setUseIdGenerator(true);
+        $this->setUseIdGenerator(false);
+        $this->setIsCrossRef(true);
         // columns
-        $this->addPrimaryKey('id', 'Id', 'INTEGER', true, null, null);
-        $this->addColumn('title', 'Title', 'VARCHAR', true, 255, null);
-        $this->addColumn('quote', 'Quote', 'LONGVARCHAR', true, null, null);
-        $this->addColumn('published', 'Published', 'TIMESTAMP', false, null, null);
+        $this->addForeignPrimaryKey('tag_id', 'TagId', 'INTEGER' , 'tag', 'id', true, null, null);
+        $this->addForeignPrimaryKey('quote_id', 'QuoteId', 'INTEGER' , 'quote', 'id', true, null, null);
     } // initialize()
 
     /**
@@ -152,15 +141,74 @@ class QuoteTableMap extends TableMap
      */
     public function buildRelations()
     {
-        $this->addRelation('QuoteTag', '\\Quote\\QuoteTag', RelationMap::ONE_TO_MANY, array (
+        $this->addRelation('Tag', '\\Quote\\Tag', RelationMap::MANY_TO_ONE, array (
+  0 =>
+  array (
+    0 => ':tag_id',
+    1 => ':id',
+  ),
+), null, null, null, false);
+        $this->addRelation('Quote', '\\Quote\\Quote', RelationMap::MANY_TO_ONE, array (
   0 =>
   array (
     0 => ':quote_id',
     1 => ':id',
   ),
-), null, null, 'QuoteTags', false);
-        $this->addRelation('Tag', '\\Quote\\Tag', RelationMap::MANY_TO_MANY, array(), null, null, 'Tags');
+), null, null, null, false);
     } // buildRelations()
+
+    /**
+     * Adds an object to the instance pool.
+     *
+     * Propel keeps cached copies of objects in an instance pool when they are retrieved
+     * from the database. In some cases you may need to explicitly add objects
+     * to the cache in order to ensure that the same objects are always returned by find*()
+     * and findPk*() calls.
+     *
+     * @param \Quote\QuoteTag $obj A \Quote\QuoteTag object.
+     * @param string $key             (optional) key to use for instance map (for performance boost if key was already calculated externally).
+     */
+    public static function addInstanceToPool($obj, $key = null)
+    {
+        if (Propel::isInstancePoolingEnabled()) {
+            if (null === $key) {
+                $key = serialize(array((string) $obj->getTagId(), (string) $obj->getQuoteId()));
+            } // if key === null
+            self::$instances[$key] = $obj;
+        }
+    }
+
+    /**
+     * Removes an object from the instance pool.
+     *
+     * Propel keeps cached copies of objects in an instance pool when they are retrieved
+     * from the database.  In some cases -- especially when you override doDelete
+     * methods in your stub classes -- you may need to explicitly remove objects
+     * from the cache in order to prevent returning objects that no longer exist.
+     *
+     * @param mixed $value A \Quote\QuoteTag object or a primary key value.
+     */
+    public static function removeInstanceFromPool($value)
+    {
+        if (Propel::isInstancePoolingEnabled() && null !== $value) {
+            if (is_object($value) && $value instanceof \Quote\QuoteTag) {
+                $key = serialize(array((string) $value->getTagId(), (string) $value->getQuoteId()));
+
+            } elseif (is_array($value) && count($value) === 2) {
+                // assume we've been passed a primary key";
+                $key = serialize(array((string) $value[0], (string) $value[1]));
+            } elseif ($value instanceof Criteria) {
+                self::$instances = [];
+
+                return;
+            } else {
+                $e = new PropelException("Invalid value passed to removeInstanceFromPool().  Expected primary key or \Quote\QuoteTag object; got " . (is_object($value) ? get_class($value) . ' object.' : var_export($value, true)));
+                throw $e;
+            }
+
+            unset(self::$instances[$key]);
+        }
+    }
 
     /**
      * Retrieves a string version of the primary key from the DB resultset row that can be used to uniquely identify a row in this table.
@@ -178,11 +226,11 @@ class QuoteTableMap extends TableMap
     public static function getPrimaryKeyHashFromRow($row, $offset = 0, $indexType = TableMap::TYPE_NUM)
     {
         // If the PK cannot be derived from the row, return NULL.
-        if ($row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)] === null) {
+        if ($row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('TagId', TableMap::TYPE_PHPNAME, $indexType)] === null && $row[TableMap::TYPE_NUM == $indexType ? 1 + $offset : static::translateFieldName('QuoteId', TableMap::TYPE_PHPNAME, $indexType)] === null) {
             return null;
         }
 
-        return (string) $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)];
+        return serialize(array((string) $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('TagId', TableMap::TYPE_PHPNAME, $indexType)], (string) $row[TableMap::TYPE_NUM == $indexType ? 1 + $offset : static::translateFieldName('QuoteId', TableMap::TYPE_PHPNAME, $indexType)]));
     }
 
     /**
@@ -199,11 +247,20 @@ class QuoteTableMap extends TableMap
      */
     public static function getPrimaryKeyFromRow($row, $offset = 0, $indexType = TableMap::TYPE_NUM)
     {
-        return (int) $row[
+            $pks = [];
+
+        $pks[] = (int) $row[
             $indexType == TableMap::TYPE_NUM
                 ? 0 + $offset
-                : self::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)
+                : self::translateFieldName('TagId', TableMap::TYPE_PHPNAME, $indexType)
         ];
+        $pks[] = (int) $row[
+            $indexType == TableMap::TYPE_NUM
+                ? 1 + $offset
+                : self::translateFieldName('QuoteId', TableMap::TYPE_PHPNAME, $indexType)
+        ];
+
+        return $pks;
     }
 
     /**
@@ -219,7 +276,7 @@ class QuoteTableMap extends TableMap
      */
     public static function getOMClass($withPrefix = true)
     {
-        return $withPrefix ? QuoteTableMap::CLASS_DEFAULT : QuoteTableMap::OM_CLASS;
+        return $withPrefix ? QuoteTagTableMap::CLASS_DEFAULT : QuoteTagTableMap::OM_CLASS;
     }
 
     /**
@@ -233,22 +290,22 @@ class QuoteTableMap extends TableMap
      *
      * @throws PropelException Any exceptions caught during processing will be
      *                         rethrown wrapped into a PropelException.
-     * @return array           (Quote object, last column rank)
+     * @return array           (QuoteTag object, last column rank)
      */
     public static function populateObject($row, $offset = 0, $indexType = TableMap::TYPE_NUM)
     {
-        $key = QuoteTableMap::getPrimaryKeyHashFromRow($row, $offset, $indexType);
-        if (null !== ($obj = QuoteTableMap::getInstanceFromPool($key))) {
+        $key = QuoteTagTableMap::getPrimaryKeyHashFromRow($row, $offset, $indexType);
+        if (null !== ($obj = QuoteTagTableMap::getInstanceFromPool($key))) {
             // We no longer rehydrate the object, since this can cause data loss.
             // See http://www.propelorm.org/ticket/509
             // $obj->hydrate($row, $offset, true); // rehydrate
-            $col = $offset + QuoteTableMap::NUM_HYDRATE_COLUMNS;
+            $col = $offset + QuoteTagTableMap::NUM_HYDRATE_COLUMNS;
         } else {
-            $cls = QuoteTableMap::OM_CLASS;
-            /** @var Quote $obj */
+            $cls = QuoteTagTableMap::OM_CLASS;
+            /** @var QuoteTag $obj */
             $obj = new $cls();
             $col = $obj->hydrate($row, $offset, false, $indexType);
-            QuoteTableMap::addInstanceToPool($obj, $key);
+            QuoteTagTableMap::addInstanceToPool($obj, $key);
         }
 
         return array($obj, $col);
@@ -271,18 +328,18 @@ class QuoteTableMap extends TableMap
         $cls = static::getOMClass(false);
         // populate the object(s)
         while ($row = $dataFetcher->fetch()) {
-            $key = QuoteTableMap::getPrimaryKeyHashFromRow($row, 0, $dataFetcher->getIndexType());
-            if (null !== ($obj = QuoteTableMap::getInstanceFromPool($key))) {
+            $key = QuoteTagTableMap::getPrimaryKeyHashFromRow($row, 0, $dataFetcher->getIndexType());
+            if (null !== ($obj = QuoteTagTableMap::getInstanceFromPool($key))) {
                 // We no longer rehydrate the object, since this can cause data loss.
                 // See http://www.propelorm.org/ticket/509
                 // $obj->hydrate($row, 0, true); // rehydrate
                 $results[] = $obj;
             } else {
-                /** @var Quote $obj */
+                /** @var QuoteTag $obj */
                 $obj = new $cls();
                 $obj->hydrate($row);
                 $results[] = $obj;
-                QuoteTableMap::addInstanceToPool($obj, $key);
+                QuoteTagTableMap::addInstanceToPool($obj, $key);
             } // if key exists
         }
 
@@ -303,15 +360,11 @@ class QuoteTableMap extends TableMap
     public static function addSelectColumns(Criteria $criteria, $alias = null)
     {
         if (null === $alias) {
-            $criteria->addSelectColumn(QuoteTableMap::COL_ID);
-            $criteria->addSelectColumn(QuoteTableMap::COL_TITLE);
-            $criteria->addSelectColumn(QuoteTableMap::COL_QUOTE);
-            $criteria->addSelectColumn(QuoteTableMap::COL_PUBLISHED);
+            $criteria->addSelectColumn(QuoteTagTableMap::COL_TAG_ID);
+            $criteria->addSelectColumn(QuoteTagTableMap::COL_QUOTE_ID);
         } else {
-            $criteria->addSelectColumn($alias . '.id');
-            $criteria->addSelectColumn($alias . '.title');
-            $criteria->addSelectColumn($alias . '.quote');
-            $criteria->addSelectColumn($alias . '.published');
+            $criteria->addSelectColumn($alias . '.tag_id');
+            $criteria->addSelectColumn($alias . '.quote_id');
         }
     }
 
@@ -324,7 +377,7 @@ class QuoteTableMap extends TableMap
      */
     public static function getTableMap()
     {
-        return Propel::getServiceContainer()->getDatabaseMap(QuoteTableMap::DATABASE_NAME)->getTable(QuoteTableMap::TABLE_NAME);
+        return Propel::getServiceContainer()->getDatabaseMap(QuoteTagTableMap::DATABASE_NAME)->getTable(QuoteTagTableMap::TABLE_NAME);
     }
 
     /**
@@ -332,16 +385,16 @@ class QuoteTableMap extends TableMap
      */
     public static function buildTableMap()
     {
-        $dbMap = Propel::getServiceContainer()->getDatabaseMap(QuoteTableMap::DATABASE_NAME);
-        if (!$dbMap->hasTable(QuoteTableMap::TABLE_NAME)) {
-            $dbMap->addTableObject(new QuoteTableMap());
+        $dbMap = Propel::getServiceContainer()->getDatabaseMap(QuoteTagTableMap::DATABASE_NAME);
+        if (!$dbMap->hasTable(QuoteTagTableMap::TABLE_NAME)) {
+            $dbMap->addTableObject(new QuoteTagTableMap());
         }
     }
 
     /**
-     * Performs a DELETE on the database, given a Quote or Criteria object OR a primary key value.
+     * Performs a DELETE on the database, given a QuoteTag or Criteria object OR a primary key value.
      *
-     * @param mixed               $values Criteria or Quote object or primary key or array of primary keys
+     * @param mixed               $values Criteria or QuoteTag object or primary key or array of primary keys
      *              which is used to create the DELETE statement
      * @param  ConnectionInterface $con the connection to use
      * @return int             The number of affected rows (if supported by underlying database driver).  This includes CASCADE-related rows
@@ -352,27 +405,37 @@ class QuoteTableMap extends TableMap
      public static function doDelete($values, ConnectionInterface $con = null)
      {
         if (null === $con) {
-            $con = Propel::getServiceContainer()->getWriteConnection(QuoteTableMap::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getWriteConnection(QuoteTagTableMap::DATABASE_NAME);
         }
 
         if ($values instanceof Criteria) {
             // rename for clarity
             $criteria = $values;
-        } elseif ($values instanceof \Quote\Quote) { // it's a model object
+        } elseif ($values instanceof \Quote\QuoteTag) { // it's a model object
             // create criteria based on pk values
             $criteria = $values->buildPkeyCriteria();
         } else { // it's a primary key, or an array of pks
-            $criteria = new Criteria(QuoteTableMap::DATABASE_NAME);
-            $criteria->add(QuoteTableMap::COL_ID, (array) $values, Criteria::IN);
+            $criteria = new Criteria(QuoteTagTableMap::DATABASE_NAME);
+            // primary key is composite; we therefore, expect
+            // the primary key passed to be an array of pkey values
+            if (count($values) == count($values, COUNT_RECURSIVE)) {
+                // array is not multi-dimensional
+                $values = array($values);
+            }
+            foreach ($values as $value) {
+                $criterion = $criteria->getNewCriterion(QuoteTagTableMap::COL_TAG_ID, $value[0]);
+                $criterion->addAnd($criteria->getNewCriterion(QuoteTagTableMap::COL_QUOTE_ID, $value[1]));
+                $criteria->addOr($criterion);
+            }
         }
 
-        $query = QuoteQuery::create()->mergeWith($criteria);
+        $query = QuoteTagQuery::create()->mergeWith($criteria);
 
         if ($values instanceof Criteria) {
-            QuoteTableMap::clearInstancePool();
+            QuoteTagTableMap::clearInstancePool();
         } elseif (!is_object($values)) { // it's a primary key, or an array of pks
             foreach ((array) $values as $singleval) {
-                QuoteTableMap::removeInstanceFromPool($singleval);
+                QuoteTagTableMap::removeInstanceFromPool($singleval);
             }
         }
 
@@ -380,20 +443,20 @@ class QuoteTableMap extends TableMap
     }
 
     /**
-     * Deletes all rows from the quote table.
+     * Deletes all rows from the quote_tag table.
      *
      * @param ConnectionInterface $con the connection to use
      * @return int The number of affected rows (if supported by underlying database driver).
      */
     public static function doDeleteAll(ConnectionInterface $con = null)
     {
-        return QuoteQuery::create()->doDeleteAll($con);
+        return QuoteTagQuery::create()->doDeleteAll($con);
     }
 
     /**
-     * Performs an INSERT on the database, given a Quote or Criteria object.
+     * Performs an INSERT on the database, given a QuoteTag or Criteria object.
      *
-     * @param mixed               $criteria Criteria or Quote object containing data that is used to create the INSERT statement.
+     * @param mixed               $criteria Criteria or QuoteTag object containing data that is used to create the INSERT statement.
      * @param ConnectionInterface $con the ConnectionInterface connection to use
      * @return mixed           The new primary key.
      * @throws PropelException Any exceptions caught during processing will be
@@ -402,22 +465,18 @@ class QuoteTableMap extends TableMap
     public static function doInsert($criteria, ConnectionInterface $con = null)
     {
         if (null === $con) {
-            $con = Propel::getServiceContainer()->getWriteConnection(QuoteTableMap::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getWriteConnection(QuoteTagTableMap::DATABASE_NAME);
         }
 
         if ($criteria instanceof Criteria) {
             $criteria = clone $criteria; // rename for clarity
         } else {
-            $criteria = $criteria->buildCriteria(); // build Criteria from Quote object
-        }
-
-        if ($criteria->containsKey(QuoteTableMap::COL_ID) && $criteria->keyContainsValue(QuoteTableMap::COL_ID) ) {
-            throw new PropelException('Cannot insert a value for auto-increment primary key ('.QuoteTableMap::COL_ID.')');
+            $criteria = $criteria->buildCriteria(); // build Criteria from QuoteTag object
         }
 
 
         // Set the correct dbName
-        $query = QuoteQuery::create()->mergeWith($criteria);
+        $query = QuoteTagQuery::create()->mergeWith($criteria);
 
         // use transaction because $criteria could contain info
         // for more than one table (I guess, conceivably)
@@ -426,7 +485,7 @@ class QuoteTableMap extends TableMap
         });
     }
 
-} // QuoteTableMap
+} // QuoteTagTableMap
 // This is the static code needed to register the TableMap for this table with the main Propel class.
 //
-QuoteTableMap::buildTableMap();
+QuoteTagTableMap::buildTableMap();
