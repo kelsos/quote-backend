@@ -83,9 +83,9 @@ class Helpers
   static function error($code, $description, $app)
   {
     $error = new Error();
-    $error->setStatus($code);
+    $error->setCode($code);
     $error->setDescription($description);
-    $app->halt($error->getStatus(), json_encode($error));
+    $app->halt($error->getCode(), json_encode($error));
   }
 
   /**

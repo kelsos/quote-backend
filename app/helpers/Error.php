@@ -5,7 +5,7 @@ namespace QuoteEnd;
 class Error
 {
   public $success = false;
-  public $status = 404;
+  public $code = 404;
   public $description = "Not found";
 
   /**
@@ -27,17 +27,17 @@ class Error
   /**
    * @return int
    */
-  public function getStatus()
+  public function getCode()
   {
-    return $this->status;
+    return $this->code;
   }
 
   /**
-   * @param int $status
+   * @param int $code
    */
-  public function setStatus($status)
+  public function setCode($code)
   {
-    $this->status = $status;
+    $this->code = $code;
   }
 
   /**
