@@ -60,15 +60,16 @@
     </table>
 
     <table name="user" phpName="User">
-      <column name="id" type="integer" required="true" primaryKey="true" autoIncrement="true"/>
-      <column name="username" type="varchar" size="255" required="true"/>
-      <column name="password" type="varchar" size="255" required="true"/>
-      <column name="approved" type="boolean"/>
-      <column name="admin" type="boolean" />
+        <column name="id" type="integer" required="true" primaryKey="true" autoIncrement="true"/>
+        <column name="username" type="varchar" size="255" required="true"/>
+        <column name="password" type="varchar" size="255" required="true"/>
+        <column name="approved" type="boolean"/>
+        <column name="confirmed" type="boolean"/>
+        <column name="admin" type="boolean"/>
 
-      <unique>
-        <unique-column name="username"/>
-      </unique>
+        <unique>
+            <unique-column name="username"/>
+        </unique>
     </table>
 
     <table name="tag" phpName="Tag">

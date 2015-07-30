@@ -59,7 +59,7 @@ class UserTableMap extends TableMap
     /**
      * The total number of columns
      */
-    const NUM_COLUMNS = 5;
+    const NUM_COLUMNS = 6;
 
     /**
      * The number of lazy-loaded columns
@@ -69,7 +69,7 @@ class UserTableMap extends TableMap
     /**
      * The number of columns to hydrate (NUM_COLUMNS - NUM_LAZY_LOAD_COLUMNS)
      */
-    const NUM_HYDRATE_COLUMNS = 5;
+    const NUM_HYDRATE_COLUMNS = 6;
 
     /**
      * the column name for the id field
@@ -92,6 +92,11 @@ class UserTableMap extends TableMap
     const COL_APPROVED = 'user.approved';
 
     /**
+     * the column name for the confirmed field
+     */
+    const COL_CONFIRMED = 'user.confirmed';
+
+    /**
      * the column name for the admin field
      */
     const COL_ADMIN = 'user.admin';
@@ -108,11 +113,11 @@ class UserTableMap extends TableMap
      * e.g. self::$fieldNames[self::TYPE_PHPNAME][0] = 'Id'
      */
     protected static $fieldNames = array (
-        self::TYPE_PHPNAME       => array('Id', 'Username', 'Password', 'Approved', 'Admin', ),
-        self::TYPE_CAMELNAME     => array('id', 'username', 'password', 'approved', 'admin', ),
-        self::TYPE_COLNAME       => array(UserTableMap::COL_ID, UserTableMap::COL_USERNAME, UserTableMap::COL_PASSWORD, UserTableMap::COL_APPROVED, UserTableMap::COL_ADMIN, ),
-        self::TYPE_FIELDNAME     => array('id', 'username', 'password', 'approved', 'admin', ),
-        self::TYPE_NUM           => array(0, 1, 2, 3, 4, )
+        self::TYPE_PHPNAME       => array('Id', 'Username', 'Password', 'Approved', 'Confirmed', 'Admin', ),
+        self::TYPE_CAMELNAME     => array('id', 'username', 'password', 'approved', 'confirmed', 'admin', ),
+        self::TYPE_COLNAME       => array(UserTableMap::COL_ID, UserTableMap::COL_USERNAME, UserTableMap::COL_PASSWORD, UserTableMap::COL_APPROVED, UserTableMap::COL_CONFIRMED, UserTableMap::COL_ADMIN, ),
+        self::TYPE_FIELDNAME     => array('id', 'username', 'password', 'approved', 'confirmed', 'admin', ),
+        self::TYPE_NUM           => array(0, 1, 2, 3, 4, 5, )
     );
 
     /**
@@ -122,11 +127,11 @@ class UserTableMap extends TableMap
      * e.g. self::$fieldKeys[self::TYPE_PHPNAME]['Id'] = 0
      */
     protected static $fieldKeys = array (
-        self::TYPE_PHPNAME       => array('Id' => 0, 'Username' => 1, 'Password' => 2, 'Approved' => 3, 'Admin' => 4, ),
-        self::TYPE_CAMELNAME     => array('id' => 0, 'username' => 1, 'password' => 2, 'approved' => 3, 'admin' => 4, ),
-        self::TYPE_COLNAME       => array(UserTableMap::COL_ID => 0, UserTableMap::COL_USERNAME => 1, UserTableMap::COL_PASSWORD => 2, UserTableMap::COL_APPROVED => 3, UserTableMap::COL_ADMIN => 4, ),
-        self::TYPE_FIELDNAME     => array('id' => 0, 'username' => 1, 'password' => 2, 'approved' => 3, 'admin' => 4, ),
-        self::TYPE_NUM           => array(0, 1, 2, 3, 4, )
+        self::TYPE_PHPNAME       => array('Id' => 0, 'Username' => 1, 'Password' => 2, 'Approved' => 3, 'Confirmed' => 4, 'Admin' => 5, ),
+        self::TYPE_CAMELNAME     => array('id' => 0, 'username' => 1, 'password' => 2, 'approved' => 3, 'confirmed' => 4, 'admin' => 5, ),
+        self::TYPE_COLNAME       => array(UserTableMap::COL_ID => 0, UserTableMap::COL_USERNAME => 1, UserTableMap::COL_PASSWORD => 2, UserTableMap::COL_APPROVED => 3, UserTableMap::COL_CONFIRMED => 4, UserTableMap::COL_ADMIN => 5, ),
+        self::TYPE_FIELDNAME     => array('id' => 0, 'username' => 1, 'password' => 2, 'approved' => 3, 'confirmed' => 4, 'admin' => 5, ),
+        self::TYPE_NUM           => array(0, 1, 2, 3, 4, 5, )
     );
 
     /**
@@ -150,6 +155,7 @@ class UserTableMap extends TableMap
         $this->addColumn('username', 'Username', 'VARCHAR', true, 255, null);
         $this->addColumn('password', 'Password', 'VARCHAR', true, 255, null);
         $this->addColumn('approved', 'Approved', 'BOOLEAN', false, 1, null);
+        $this->addColumn('confirmed', 'Confirmed', 'BOOLEAN', false, 1, null);
         $this->addColumn('admin', 'Admin', 'BOOLEAN', false, 1, null);
     } // initialize()
 
@@ -305,12 +311,14 @@ class UserTableMap extends TableMap
             $criteria->addSelectColumn(UserTableMap::COL_USERNAME);
             $criteria->addSelectColumn(UserTableMap::COL_PASSWORD);
             $criteria->addSelectColumn(UserTableMap::COL_APPROVED);
+            $criteria->addSelectColumn(UserTableMap::COL_CONFIRMED);
             $criteria->addSelectColumn(UserTableMap::COL_ADMIN);
         } else {
             $criteria->addSelectColumn($alias . '.id');
             $criteria->addSelectColumn($alias . '.username');
             $criteria->addSelectColumn($alias . '.password');
             $criteria->addSelectColumn($alias . '.approved');
+            $criteria->addSelectColumn($alias . '.confirmed');
             $criteria->addSelectColumn($alias . '.admin');
         }
     }

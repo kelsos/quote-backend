@@ -84,6 +84,12 @@ abstract class User implements ActiveRecordInterface
     protected $approved;
 
     /**
+     * The value for the confirmed field.
+     * @var        boolean
+     */
+    protected $confirmed;
+
+    /**
      * The value for the admin field.
      * @var        boolean
      */
@@ -365,6 +371,26 @@ abstract class User implements ActiveRecordInterface
     }
 
     /**
+     * Get the [confirmed] column value.
+     *
+     * @return boolean
+     */
+    public function getConfirmed()
+    {
+        return $this->confirmed;
+    }
+
+    /**
+     * Get the [confirmed] column value.
+     *
+     * @return boolean
+     */
+    public function isConfirmed()
+    {
+        return $this->getConfirmed();
+    }
+
+    /**
      * Get the [admin] column value.
      *
      * @return boolean
@@ -473,6 +499,34 @@ abstract class User implements ActiveRecordInterface
     } // setApproved()
 
     /**
+     * Sets the value of the [confirmed] column.
+     * Non-boolean arguments are converted using the following rules:
+     *   * 1, '1', 'true',  'on',  and 'yes' are converted to boolean true
+     *   * 0, '0', 'false', 'off', and 'no'  are converted to boolean false
+     * Check on string values is case insensitive (so 'FaLsE' is seen as 'false').
+     *
+     * @param  boolean|integer|string $v The new value
+     * @return $this|\Quote\User The current object (for fluent API support)
+     */
+    public function setConfirmed($v)
+    {
+        if ($v !== null) {
+            if (is_string($v)) {
+                $v = in_array(strtolower($v), array('false', 'off', '-', 'no', 'n', '0', '')) ? false : true;
+            } else {
+                $v = (boolean) $v;
+            }
+        }
+
+        if ($this->confirmed !== $v) {
+            $this->confirmed = $v;
+            $this->modifiedColumns[UserTableMap::COL_CONFIRMED] = true;
+        }
+
+        return $this;
+    } // setConfirmed()
+
+    /**
      * Sets the value of the [admin] column.
      * Non-boolean arguments are converted using the following rules:
      *   * 1, '1', 'true',  'on',  and 'yes' are converted to boolean true
@@ -548,7 +602,10 @@ abstract class User implements ActiveRecordInterface
             $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : UserTableMap::translateFieldName('Approved', TableMap::TYPE_PHPNAME, $indexType)];
             $this->approved = (null !== $col) ? (boolean) $col : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 4 + $startcol : UserTableMap::translateFieldName('Admin', TableMap::TYPE_PHPNAME, $indexType)];
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 4 + $startcol : UserTableMap::translateFieldName('Confirmed', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->confirmed = (null !== $col) ? (boolean) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 5 + $startcol : UserTableMap::translateFieldName('Admin', TableMap::TYPE_PHPNAME, $indexType)];
             $this->admin = (null !== $col) ? (boolean) $col : null;
             $this->resetModified();
 
@@ -558,7 +615,7 @@ abstract class User implements ActiveRecordInterface
                 $this->ensureConsistency();
             }
 
-            return $startcol + 5; // 5 = UserTableMap::NUM_HYDRATE_COLUMNS.
+            return $startcol + 6; // 6 = UserTableMap::NUM_HYDRATE_COLUMNS.
 
         } catch (Exception $e) {
             throw new PropelException(sprintf('Error populating %s object', '\\Quote\\User'), 0, $e);
@@ -767,6 +824,9 @@ abstract class User implements ActiveRecordInterface
         if ($this->isColumnModified(UserTableMap::COL_APPROVED)) {
             $modifiedColumns[':p' . $index++]  = 'approved';
         }
+        if ($this->isColumnModified(UserTableMap::COL_CONFIRMED)) {
+            $modifiedColumns[':p' . $index++]  = 'confirmed';
+        }
         if ($this->isColumnModified(UserTableMap::COL_ADMIN)) {
             $modifiedColumns[':p' . $index++]  = 'admin';
         }
@@ -792,6 +852,9 @@ abstract class User implements ActiveRecordInterface
                         break;
                     case 'approved':
                         $stmt->bindValue($identifier, (int) $this->approved, PDO::PARAM_INT);
+                        break;
+                    case 'confirmed':
+                        $stmt->bindValue($identifier, (int) $this->confirmed, PDO::PARAM_INT);
                         break;
                     case 'admin':
                         $stmt->bindValue($identifier, (int) $this->admin, PDO::PARAM_INT);
@@ -871,6 +934,9 @@ abstract class User implements ActiveRecordInterface
                 return $this->getApproved();
                 break;
             case 4:
+                return $this->getConfirmed();
+                break;
+            case 5:
                 return $this->getAdmin();
                 break;
             default:
@@ -906,7 +972,8 @@ abstract class User implements ActiveRecordInterface
             $keys[1] => $this->getUsername(),
             $keys[2] => $this->getPassword(),
             $keys[3] => $this->getApproved(),
-            $keys[4] => $this->getAdmin(),
+            $keys[4] => $this->getConfirmed(),
+            $keys[5] => $this->getAdmin(),
         );
         $virtualColumns = $this->virtualColumns;
         foreach ($virtualColumns as $key => $virtualColumn) {
@@ -959,6 +1026,9 @@ abstract class User implements ActiveRecordInterface
                 $this->setApproved($value);
                 break;
             case 4:
+                $this->setConfirmed($value);
+                break;
+            case 5:
                 $this->setAdmin($value);
                 break;
         } // switch()
@@ -1000,7 +1070,10 @@ abstract class User implements ActiveRecordInterface
             $this->setApproved($arr[$keys[3]]);
         }
         if (array_key_exists($keys[4], $arr)) {
-            $this->setAdmin($arr[$keys[4]]);
+            $this->setConfirmed($arr[$keys[4]]);
+        }
+        if (array_key_exists($keys[5], $arr)) {
+            $this->setAdmin($arr[$keys[5]]);
         }
     }
 
@@ -1054,6 +1127,9 @@ abstract class User implements ActiveRecordInterface
         }
         if ($this->isColumnModified(UserTableMap::COL_APPROVED)) {
             $criteria->add(UserTableMap::COL_APPROVED, $this->approved);
+        }
+        if ($this->isColumnModified(UserTableMap::COL_CONFIRMED)) {
+            $criteria->add(UserTableMap::COL_CONFIRMED, $this->confirmed);
         }
         if ($this->isColumnModified(UserTableMap::COL_ADMIN)) {
             $criteria->add(UserTableMap::COL_ADMIN, $this->admin);
@@ -1147,6 +1223,7 @@ abstract class User implements ActiveRecordInterface
         $copyObj->setUsername($this->getUsername());
         $copyObj->setPassword($this->getPassword());
         $copyObj->setApproved($this->getApproved());
+        $copyObj->setConfirmed($this->getConfirmed());
         $copyObj->setAdmin($this->getAdmin());
         if ($makeNew) {
             $copyObj->setNew(true);
@@ -1187,6 +1264,7 @@ abstract class User implements ActiveRecordInterface
         $this->username = null;
         $this->password = null;
         $this->approved = null;
+        $this->confirmed = null;
         $this->admin = null;
         $this->alreadyInSave = false;
         $this->clearAllReferences();

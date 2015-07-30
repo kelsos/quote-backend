@@ -23,12 +23,14 @@ use Quote\Map\UserTableMap;
  * @method     ChildUserQuery orderByUsername($order = Criteria::ASC) Order by the username column
  * @method     ChildUserQuery orderByPassword($order = Criteria::ASC) Order by the password column
  * @method     ChildUserQuery orderByApproved($order = Criteria::ASC) Order by the approved column
+ * @method     ChildUserQuery orderByConfirmed($order = Criteria::ASC) Order by the confirmed column
  * @method     ChildUserQuery orderByAdmin($order = Criteria::ASC) Order by the admin column
  *
  * @method     ChildUserQuery groupById() Group by the id column
  * @method     ChildUserQuery groupByUsername() Group by the username column
  * @method     ChildUserQuery groupByPassword() Group by the password column
  * @method     ChildUserQuery groupByApproved() Group by the approved column
+ * @method     ChildUserQuery groupByConfirmed() Group by the confirmed column
  * @method     ChildUserQuery groupByAdmin() Group by the admin column
  *
  * @method     ChildUserQuery leftJoin($relation) Adds a LEFT JOIN clause to the query
@@ -42,6 +44,7 @@ use Quote\Map\UserTableMap;
  * @method     ChildUser findOneByUsername(string $username) Return the first ChildUser filtered by the username column
  * @method     ChildUser findOneByPassword(string $password) Return the first ChildUser filtered by the password column
  * @method     ChildUser findOneByApproved(boolean $approved) Return the first ChildUser filtered by the approved column
+ * @method     ChildUser findOneByConfirmed(boolean $confirmed) Return the first ChildUser filtered by the confirmed column
  * @method     ChildUser findOneByAdmin(boolean $admin) Return the first ChildUser filtered by the admin column *
 
  * @method     ChildUser requirePk($key, ConnectionInterface $con = null) Return the ChildUser by primary key and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
@@ -51,6 +54,7 @@ use Quote\Map\UserTableMap;
  * @method     ChildUser requireOneByUsername(string $username) Return the first ChildUser filtered by the username column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  * @method     ChildUser requireOneByPassword(string $password) Return the first ChildUser filtered by the password column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  * @method     ChildUser requireOneByApproved(boolean $approved) Return the first ChildUser filtered by the approved column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
+ * @method     ChildUser requireOneByConfirmed(boolean $confirmed) Return the first ChildUser filtered by the confirmed column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  * @method     ChildUser requireOneByAdmin(boolean $admin) Return the first ChildUser filtered by the admin column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  *
  * @method     ChildUser[]|ObjectCollection find(ConnectionInterface $con = null) Return ChildUser objects based on current ModelCriteria
@@ -58,6 +62,7 @@ use Quote\Map\UserTableMap;
  * @method     ChildUser[]|ObjectCollection findByUsername(string $username) Return ChildUser objects filtered by the username column
  * @method     ChildUser[]|ObjectCollection findByPassword(string $password) Return ChildUser objects filtered by the password column
  * @method     ChildUser[]|ObjectCollection findByApproved(boolean $approved) Return ChildUser objects filtered by the approved column
+ * @method     ChildUser[]|ObjectCollection findByConfirmed(boolean $confirmed) Return ChildUser objects filtered by the confirmed column
  * @method     ChildUser[]|ObjectCollection findByAdmin(boolean $admin) Return ChildUser objects filtered by the admin column
  * @method     ChildUser[]|\Propel\Runtime\Util\PropelModelPager paginate($page = 1, $maxPerPage = 10, ConnectionInterface $con = null) Issue a SELECT query based on the current ModelCriteria and uses a page and a maximum number of results per page to compute an offset and a limit
  *
@@ -151,7 +156,7 @@ abstract class UserQuery extends ModelCriteria
      */
     protected function findPkSimple($key, ConnectionInterface $con)
     {
-        $sql = 'SELECT id, username, password, approved, admin FROM user WHERE id = :p0';
+        $sql = 'SELECT id, username, password, approved, confirmed, admin FROM user WHERE id = :p0';
         try {
             $stmt = $con->prepare($sql);
             $stmt->bindValue(':p0', $key, PDO::PARAM_INT);
@@ -365,6 +370,33 @@ abstract class UserQuery extends ModelCriteria
         }
 
         return $this->addUsingAlias(UserTableMap::COL_APPROVED, $approved, $comparison);
+    }
+
+    /**
+     * Filter the query on the confirmed column
+     *
+     * Example usage:
+     * <code>
+     * $query->filterByConfirmed(true); // WHERE confirmed = true
+     * $query->filterByConfirmed('yes'); // WHERE confirmed = true
+     * </code>
+     *
+     * @param     boolean|string $confirmed The value to use as filter.
+     *              Non-boolean arguments are converted using the following rules:
+     *                * 1, '1', 'true',  'on',  and 'yes' are converted to boolean true
+     *                * 0, '0', 'false', 'off', and 'no'  are converted to boolean false
+     *              Check on string values is case insensitive (so 'FaLsE' is seen as 'false').
+     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return $this|ChildUserQuery The current query, for fluid interface
+     */
+    public function filterByConfirmed($confirmed = null, $comparison = null)
+    {
+        if (is_string($confirmed)) {
+            $confirmed = in_array(strtolower($confirmed), array('false', 'off', '-', 'no', 'n', '0', '')) ? false : true;
+        }
+
+        return $this->addUsingAlias(UserTableMap::COL_CONFIRMED, $confirmed, $comparison);
     }
 
     /**
