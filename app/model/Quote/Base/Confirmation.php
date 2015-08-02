@@ -9,32 +9,30 @@ use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
 use Propel\Runtime\Collection\Collection;
-use Propel\Runtime\Collection\ObjectCollection;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Propel\Runtime\Exception\BadMethodCallException;
 use Propel\Runtime\Exception\LogicException;
 use Propel\Runtime\Exception\PropelException;
 use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Parser\AbstractParser;
-use Quote\Confirmation as ChildConfirmation;
 use Quote\ConfirmationQuery as ChildConfirmationQuery;
 use Quote\User as ChildUser;
 use Quote\UserQuery as ChildUserQuery;
-use Quote\Map\UserTableMap;
+use Quote\Map\ConfirmationTableMap;
 
 /**
- * Base class that represents a row from the 'user' table.
+ * Base class that represents a row from the 'confirmation' table.
  *
  *
  *
 * @package    propel.generator.Quote.Base
 */
-abstract class User implements ActiveRecordInterface
+abstract class Confirmation implements ActiveRecordInterface
 {
     /**
      * TableMap class name
      */
-    const TABLE_MAP = '\\Quote\\Map\\UserTableMap';
+    const TABLE_MAP = '\\Quote\\Map\\ConfirmationTableMap';
 
 
     /**
@@ -70,40 +68,21 @@ abstract class User implements ActiveRecordInterface
     protected $id;
 
     /**
-     * The value for the username field.
+     * The value for the code field.
      * @var        string
      */
-    protected $username;
+    protected $code;
 
     /**
-     * The value for the password field.
-     * @var        string
+     * The value for the user_id field.
+     * @var        int
      */
-    protected $password;
+    protected $user_id;
 
     /**
-     * The value for the approved field.
-     * @var        boolean
+     * @var        ChildUser
      */
-    protected $approved;
-
-    /**
-     * The value for the confirmed field.
-     * @var        boolean
-     */
-    protected $confirmed;
-
-    /**
-     * The value for the admin field.
-     * @var        boolean
-     */
-    protected $admin;
-
-    /**
-     * @var        ObjectCollection|ChildConfirmation[] Collection to store aggregation of ChildConfirmation objects.
-     */
-    protected $collConfirmations;
-    protected $collConfirmationsPartial;
+    protected $aUser;
 
     /**
      * Flag to prevent endless save loop, if this object is referenced
@@ -114,13 +93,7 @@ abstract class User implements ActiveRecordInterface
     protected $alreadyInSave = false;
 
     /**
-     * An array of objects scheduled for deletion.
-     * @var ObjectCollection|ChildConfirmation[]
-     */
-    protected $confirmationsScheduledForDeletion = null;
-
-    /**
-     * Initializes internal state of Quote\Base\User object.
+     * Initializes internal state of Quote\Base\Confirmation object.
      */
     public function __construct()
     {
@@ -215,9 +188,9 @@ abstract class User implements ActiveRecordInterface
     }
 
     /**
-     * Compares this with another <code>User</code> instance.  If
-     * <code>obj</code> is an instance of <code>User</code>, delegates to
-     * <code>equals(User)</code>.  Otherwise, returns <code>false</code>.
+     * Compares this with another <code>Confirmation</code> instance.  If
+     * <code>obj</code> is an instance of <code>Confirmation</code>, delegates to
+     * <code>equals(Confirmation)</code>.  Otherwise, returns <code>false</code>.
      *
      * @param  mixed   $obj The object to compare to.
      * @return boolean Whether equal to the object specified.
@@ -283,7 +256,7 @@ abstract class User implements ActiveRecordInterface
      * @param string $name  The virtual column name
      * @param mixed  $value The value to give to the virtual column
      *
-     * @return $this|User The current object, for fluid interface
+     * @return $this|Confirmation The current object, for fluid interface
      */
     public function setVirtualColumn($name, $value)
     {
@@ -347,90 +320,30 @@ abstract class User implements ActiveRecordInterface
     }
 
     /**
-     * Get the [username] column value.
+     * Get the [code] column value.
      *
      * @return string
      */
-    public function getUsername()
+    public function getCode()
     {
-        return $this->username;
+        return $this->code;
     }
 
     /**
-     * Get the [password] column value.
+     * Get the [user_id] column value.
      *
-     * @return string
+     * @return int
      */
-    public function getPassword()
+    public function getUserId()
     {
-        return $this->password;
-    }
-
-    /**
-     * Get the [approved] column value.
-     *
-     * @return boolean
-     */
-    public function getApproved()
-    {
-        return $this->approved;
-    }
-
-    /**
-     * Get the [approved] column value.
-     *
-     * @return boolean
-     */
-    public function isApproved()
-    {
-        return $this->getApproved();
-    }
-
-    /**
-     * Get the [confirmed] column value.
-     *
-     * @return boolean
-     */
-    public function getConfirmed()
-    {
-        return $this->confirmed;
-    }
-
-    /**
-     * Get the [confirmed] column value.
-     *
-     * @return boolean
-     */
-    public function isConfirmed()
-    {
-        return $this->getConfirmed();
-    }
-
-    /**
-     * Get the [admin] column value.
-     *
-     * @return boolean
-     */
-    public function getAdmin()
-    {
-        return $this->admin;
-    }
-
-    /**
-     * Get the [admin] column value.
-     *
-     * @return boolean
-     */
-    public function isAdmin()
-    {
-        return $this->getAdmin();
+        return $this->user_id;
     }
 
     /**
      * Set the value of [id] column.
      *
      * @param int $v new value
-     * @return $this|\Quote\User The current object (for fluent API support)
+     * @return $this|\Quote\Confirmation The current object (for fluent API support)
      */
     public function setId($v)
     {
@@ -440,135 +353,55 @@ abstract class User implements ActiveRecordInterface
 
         if ($this->id !== $v) {
             $this->id = $v;
-            $this->modifiedColumns[UserTableMap::COL_ID] = true;
+            $this->modifiedColumns[ConfirmationTableMap::COL_ID] = true;
         }
 
         return $this;
     } // setId()
 
     /**
-     * Set the value of [username] column.
+     * Set the value of [code] column.
      *
      * @param string $v new value
-     * @return $this|\Quote\User The current object (for fluent API support)
+     * @return $this|\Quote\Confirmation The current object (for fluent API support)
      */
-    public function setUsername($v)
+    public function setCode($v)
     {
         if ($v !== null) {
             $v = (string) $v;
         }
 
-        if ($this->username !== $v) {
-            $this->username = $v;
-            $this->modifiedColumns[UserTableMap::COL_USERNAME] = true;
+        if ($this->code !== $v) {
+            $this->code = $v;
+            $this->modifiedColumns[ConfirmationTableMap::COL_CODE] = true;
         }
 
         return $this;
-    } // setUsername()
+    } // setCode()
 
     /**
-     * Set the value of [password] column.
+     * Set the value of [user_id] column.
      *
-     * @param string $v new value
-     * @return $this|\Quote\User The current object (for fluent API support)
+     * @param int $v new value
+     * @return $this|\Quote\Confirmation The current object (for fluent API support)
      */
-    public function setPassword($v)
+    public function setUserId($v)
     {
         if ($v !== null) {
-            $v = (string) $v;
+            $v = (int) $v;
         }
 
-        if ($this->password !== $v) {
-            $this->password = $v;
-            $this->modifiedColumns[UserTableMap::COL_PASSWORD] = true;
+        if ($this->user_id !== $v) {
+            $this->user_id = $v;
+            $this->modifiedColumns[ConfirmationTableMap::COL_USER_ID] = true;
+        }
+
+        if ($this->aUser !== null && $this->aUser->getId() !== $v) {
+            $this->aUser = null;
         }
 
         return $this;
-    } // setPassword()
-
-    /**
-     * Sets the value of the [approved] column.
-     * Non-boolean arguments are converted using the following rules:
-     *   * 1, '1', 'true',  'on',  and 'yes' are converted to boolean true
-     *   * 0, '0', 'false', 'off', and 'no'  are converted to boolean false
-     * Check on string values is case insensitive (so 'FaLsE' is seen as 'false').
-     *
-     * @param  boolean|integer|string $v The new value
-     * @return $this|\Quote\User The current object (for fluent API support)
-     */
-    public function setApproved($v)
-    {
-        if ($v !== null) {
-            if (is_string($v)) {
-                $v = in_array(strtolower($v), array('false', 'off', '-', 'no', 'n', '0', '')) ? false : true;
-            } else {
-                $v = (boolean) $v;
-            }
-        }
-
-        if ($this->approved !== $v) {
-            $this->approved = $v;
-            $this->modifiedColumns[UserTableMap::COL_APPROVED] = true;
-        }
-
-        return $this;
-    } // setApproved()
-
-    /**
-     * Sets the value of the [confirmed] column.
-     * Non-boolean arguments are converted using the following rules:
-     *   * 1, '1', 'true',  'on',  and 'yes' are converted to boolean true
-     *   * 0, '0', 'false', 'off', and 'no'  are converted to boolean false
-     * Check on string values is case insensitive (so 'FaLsE' is seen as 'false').
-     *
-     * @param  boolean|integer|string $v The new value
-     * @return $this|\Quote\User The current object (for fluent API support)
-     */
-    public function setConfirmed($v)
-    {
-        if ($v !== null) {
-            if (is_string($v)) {
-                $v = in_array(strtolower($v), array('false', 'off', '-', 'no', 'n', '0', '')) ? false : true;
-            } else {
-                $v = (boolean) $v;
-            }
-        }
-
-        if ($this->confirmed !== $v) {
-            $this->confirmed = $v;
-            $this->modifiedColumns[UserTableMap::COL_CONFIRMED] = true;
-        }
-
-        return $this;
-    } // setConfirmed()
-
-    /**
-     * Sets the value of the [admin] column.
-     * Non-boolean arguments are converted using the following rules:
-     *   * 1, '1', 'true',  'on',  and 'yes' are converted to boolean true
-     *   * 0, '0', 'false', 'off', and 'no'  are converted to boolean false
-     * Check on string values is case insensitive (so 'FaLsE' is seen as 'false').
-     *
-     * @param  boolean|integer|string $v The new value
-     * @return $this|\Quote\User The current object (for fluent API support)
-     */
-    public function setAdmin($v)
-    {
-        if ($v !== null) {
-            if (is_string($v)) {
-                $v = in_array(strtolower($v), array('false', 'off', '-', 'no', 'n', '0', '')) ? false : true;
-            } else {
-                $v = (boolean) $v;
-            }
-        }
-
-        if ($this->admin !== $v) {
-            $this->admin = $v;
-            $this->modifiedColumns[UserTableMap::COL_ADMIN] = true;
-        }
-
-        return $this;
-    } // setAdmin()
+    } // setUserId()
 
     /**
      * Indicates whether the columns in this object are only set to default values.
@@ -606,23 +439,14 @@ abstract class User implements ActiveRecordInterface
     {
         try {
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 0 + $startcol : UserTableMap::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)];
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 0 + $startcol : ConfirmationTableMap::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)];
             $this->id = (null !== $col) ? (int) $col : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 1 + $startcol : UserTableMap::translateFieldName('Username', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->username = (null !== $col) ? (string) $col : null;
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 1 + $startcol : ConfirmationTableMap::translateFieldName('Code', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->code = (null !== $col) ? (string) $col : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : UserTableMap::translateFieldName('Password', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->password = (null !== $col) ? (string) $col : null;
-
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : UserTableMap::translateFieldName('Approved', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->approved = (null !== $col) ? (boolean) $col : null;
-
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 4 + $startcol : UserTableMap::translateFieldName('Confirmed', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->confirmed = (null !== $col) ? (boolean) $col : null;
-
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 5 + $startcol : UserTableMap::translateFieldName('Admin', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->admin = (null !== $col) ? (boolean) $col : null;
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : ConfirmationTableMap::translateFieldName('UserId', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->user_id = (null !== $col) ? (int) $col : null;
             $this->resetModified();
 
             $this->setNew(false);
@@ -631,10 +455,10 @@ abstract class User implements ActiveRecordInterface
                 $this->ensureConsistency();
             }
 
-            return $startcol + 6; // 6 = UserTableMap::NUM_HYDRATE_COLUMNS.
+            return $startcol + 3; // 3 = ConfirmationTableMap::NUM_HYDRATE_COLUMNS.
 
         } catch (Exception $e) {
-            throw new PropelException(sprintf('Error populating %s object', '\\Quote\\User'), 0, $e);
+            throw new PropelException(sprintf('Error populating %s object', '\\Quote\\Confirmation'), 0, $e);
         }
     }
 
@@ -653,6 +477,9 @@ abstract class User implements ActiveRecordInterface
      */
     public function ensureConsistency()
     {
+        if ($this->aUser !== null && $this->user_id !== $this->aUser->getId()) {
+            $this->aUser = null;
+        }
     } // ensureConsistency
 
     /**
@@ -676,13 +503,13 @@ abstract class User implements ActiveRecordInterface
         }
 
         if ($con === null) {
-            $con = Propel::getServiceContainer()->getReadConnection(UserTableMap::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getReadConnection(ConfirmationTableMap::DATABASE_NAME);
         }
 
         // We don't need to alter the object instance pool; we're just modifying this instance
         // already in the pool.
 
-        $dataFetcher = ChildUserQuery::create(null, $this->buildPkeyCriteria())->setFormatter(ModelCriteria::FORMAT_STATEMENT)->find($con);
+        $dataFetcher = ChildConfirmationQuery::create(null, $this->buildPkeyCriteria())->setFormatter(ModelCriteria::FORMAT_STATEMENT)->find($con);
         $row = $dataFetcher->fetch();
         $dataFetcher->close();
         if (!$row) {
@@ -692,8 +519,7 @@ abstract class User implements ActiveRecordInterface
 
         if ($deep) {  // also de-associate any related objects?
 
-            $this->collConfirmations = null;
-
+            $this->aUser = null;
         } // if (deep)
     }
 
@@ -703,8 +529,8 @@ abstract class User implements ActiveRecordInterface
      * @param      ConnectionInterface $con
      * @return void
      * @throws PropelException
-     * @see User::setDeleted()
-     * @see User::isDeleted()
+     * @see Confirmation::setDeleted()
+     * @see Confirmation::isDeleted()
      */
     public function delete(ConnectionInterface $con = null)
     {
@@ -713,11 +539,11 @@ abstract class User implements ActiveRecordInterface
         }
 
         if ($con === null) {
-            $con = Propel::getServiceContainer()->getWriteConnection(UserTableMap::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getWriteConnection(ConfirmationTableMap::DATABASE_NAME);
         }
 
         $con->transaction(function () use ($con) {
-            $deleteQuery = ChildUserQuery::create()
+            $deleteQuery = ChildConfirmationQuery::create()
                 ->filterByPrimaryKey($this->getPrimaryKey());
             $ret = $this->preDelete($con);
             if ($ret) {
@@ -748,7 +574,7 @@ abstract class User implements ActiveRecordInterface
         }
 
         if ($con === null) {
-            $con = Propel::getServiceContainer()->getWriteConnection(UserTableMap::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getWriteConnection(ConfirmationTableMap::DATABASE_NAME);
         }
 
         return $con->transaction(function () use ($con) {
@@ -767,7 +593,7 @@ abstract class User implements ActiveRecordInterface
                     $this->postUpdate($con);
                 }
                 $this->postSave($con);
-                UserTableMap::addInstanceToPool($this);
+                ConfirmationTableMap::addInstanceToPool($this);
             } else {
                 $affectedRows = 0;
             }
@@ -793,6 +619,18 @@ abstract class User implements ActiveRecordInterface
         if (!$this->alreadyInSave) {
             $this->alreadyInSave = true;
 
+            // We call the save method on the following object(s) if they
+            // were passed to this object by their corresponding set
+            // method.  This object relates to these object(s) by a
+            // foreign key reference.
+
+            if ($this->aUser !== null) {
+                if ($this->aUser->isModified() || $this->aUser->isNew()) {
+                    $affectedRows += $this->aUser->save($con);
+                }
+                $this->setUser($this->aUser);
+            }
+
             if ($this->isNew() || $this->isModified()) {
                 // persist changes
                 if ($this->isNew()) {
@@ -802,24 +640,6 @@ abstract class User implements ActiveRecordInterface
                     $affectedRows += $this->doUpdate($con);
                 }
                 $this->resetModified();
-            }
-
-            if ($this->confirmationsScheduledForDeletion !== null) {
-                if (!$this->confirmationsScheduledForDeletion->isEmpty()) {
-                    foreach ($this->confirmationsScheduledForDeletion as $confirmation) {
-                        // need to save related object because we set the relation to null
-                        $confirmation->save($con);
-                    }
-                    $this->confirmationsScheduledForDeletion = null;
-                }
-            }
-
-            if ($this->collConfirmations !== null) {
-                foreach ($this->collConfirmations as $referrerFK) {
-                    if (!$referrerFK->isDeleted() && ($referrerFK->isNew() || $referrerFK->isModified())) {
-                        $affectedRows += $referrerFK->save($con);
-                    }
-                }
             }
 
             $this->alreadyInSave = false;
@@ -842,33 +662,24 @@ abstract class User implements ActiveRecordInterface
         $modifiedColumns = array();
         $index = 0;
 
-        $this->modifiedColumns[UserTableMap::COL_ID] = true;
+        $this->modifiedColumns[ConfirmationTableMap::COL_ID] = true;
         if (null !== $this->id) {
-            throw new PropelException('Cannot insert a value for auto-increment primary key (' . UserTableMap::COL_ID . ')');
+            throw new PropelException('Cannot insert a value for auto-increment primary key (' . ConfirmationTableMap::COL_ID . ')');
         }
 
          // check the columns in natural order for more readable SQL queries
-        if ($this->isColumnModified(UserTableMap::COL_ID)) {
+        if ($this->isColumnModified(ConfirmationTableMap::COL_ID)) {
             $modifiedColumns[':p' . $index++]  = 'id';
         }
-        if ($this->isColumnModified(UserTableMap::COL_USERNAME)) {
-            $modifiedColumns[':p' . $index++]  = 'username';
+        if ($this->isColumnModified(ConfirmationTableMap::COL_CODE)) {
+            $modifiedColumns[':p' . $index++]  = 'code';
         }
-        if ($this->isColumnModified(UserTableMap::COL_PASSWORD)) {
-            $modifiedColumns[':p' . $index++]  = 'password';
-        }
-        if ($this->isColumnModified(UserTableMap::COL_APPROVED)) {
-            $modifiedColumns[':p' . $index++]  = 'approved';
-        }
-        if ($this->isColumnModified(UserTableMap::COL_CONFIRMED)) {
-            $modifiedColumns[':p' . $index++]  = 'confirmed';
-        }
-        if ($this->isColumnModified(UserTableMap::COL_ADMIN)) {
-            $modifiedColumns[':p' . $index++]  = 'admin';
+        if ($this->isColumnModified(ConfirmationTableMap::COL_USER_ID)) {
+            $modifiedColumns[':p' . $index++]  = 'user_id';
         }
 
         $sql = sprintf(
-            'INSERT INTO user (%s) VALUES (%s)',
+            'INSERT INTO confirmation (%s) VALUES (%s)',
             implode(', ', $modifiedColumns),
             implode(', ', array_keys($modifiedColumns))
         );
@@ -880,20 +691,11 @@ abstract class User implements ActiveRecordInterface
                     case 'id':
                         $stmt->bindValue($identifier, $this->id, PDO::PARAM_INT);
                         break;
-                    case 'username':
-                        $stmt->bindValue($identifier, $this->username, PDO::PARAM_STR);
+                    case 'code':
+                        $stmt->bindValue($identifier, $this->code, PDO::PARAM_STR);
                         break;
-                    case 'password':
-                        $stmt->bindValue($identifier, $this->password, PDO::PARAM_STR);
-                        break;
-                    case 'approved':
-                        $stmt->bindValue($identifier, (int) $this->approved, PDO::PARAM_INT);
-                        break;
-                    case 'confirmed':
-                        $stmt->bindValue($identifier, (int) $this->confirmed, PDO::PARAM_INT);
-                        break;
-                    case 'admin':
-                        $stmt->bindValue($identifier, (int) $this->admin, PDO::PARAM_INT);
+                    case 'user_id':
+                        $stmt->bindValue($identifier, $this->user_id, PDO::PARAM_INT);
                         break;
                 }
             }
@@ -941,7 +743,7 @@ abstract class User implements ActiveRecordInterface
      */
     public function getByName($name, $type = TableMap::TYPE_PHPNAME)
     {
-        $pos = UserTableMap::translateFieldName($name, $type, TableMap::TYPE_NUM);
+        $pos = ConfirmationTableMap::translateFieldName($name, $type, TableMap::TYPE_NUM);
         $field = $this->getByPosition($pos);
 
         return $field;
@@ -961,19 +763,10 @@ abstract class User implements ActiveRecordInterface
                 return $this->getId();
                 break;
             case 1:
-                return $this->getUsername();
+                return $this->getCode();
                 break;
             case 2:
-                return $this->getPassword();
-                break;
-            case 3:
-                return $this->getApproved();
-                break;
-            case 4:
-                return $this->getConfirmed();
-                break;
-            case 5:
-                return $this->getAdmin();
+                return $this->getUserId();
                 break;
             default:
                 return null;
@@ -999,18 +792,15 @@ abstract class User implements ActiveRecordInterface
     public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array(), $includeForeignObjects = false)
     {
 
-        if (isset($alreadyDumpedObjects['User'][$this->hashCode()])) {
+        if (isset($alreadyDumpedObjects['Confirmation'][$this->hashCode()])) {
             return '*RECURSION*';
         }
-        $alreadyDumpedObjects['User'][$this->hashCode()] = true;
-        $keys = UserTableMap::getFieldNames($keyType);
+        $alreadyDumpedObjects['Confirmation'][$this->hashCode()] = true;
+        $keys = ConfirmationTableMap::getFieldNames($keyType);
         $result = array(
             $keys[0] => $this->getId(),
-            $keys[1] => $this->getUsername(),
-            $keys[2] => $this->getPassword(),
-            $keys[3] => $this->getApproved(),
-            $keys[4] => $this->getConfirmed(),
-            $keys[5] => $this->getAdmin(),
+            $keys[1] => $this->getCode(),
+            $keys[2] => $this->getUserId(),
         );
         $virtualColumns = $this->virtualColumns;
         foreach ($virtualColumns as $key => $virtualColumn) {
@@ -1018,20 +808,20 @@ abstract class User implements ActiveRecordInterface
         }
 
         if ($includeForeignObjects) {
-            if (null !== $this->collConfirmations) {
+            if (null !== $this->aUser) {
 
                 switch ($keyType) {
                     case TableMap::TYPE_CAMELNAME:
-                        $key = 'confirmations';
+                        $key = 'user';
                         break;
                     case TableMap::TYPE_FIELDNAME:
-                        $key = 'confirmations';
+                        $key = 'user';
                         break;
                     default:
-                        $key = 'Confirmations';
+                        $key = 'User';
                 }
 
-                $result[$key] = $this->collConfirmations->toArray(null, false, $keyType, $includeLazyLoadColumns, $alreadyDumpedObjects);
+                $result[$key] = $this->aUser->toArray($keyType, $includeLazyLoadColumns,  $alreadyDumpedObjects, true);
             }
         }
 
@@ -1047,11 +837,11 @@ abstract class User implements ActiveRecordInterface
      *                one of the class type constants TableMap::TYPE_PHPNAME, TableMap::TYPE_CAMELNAME
      *                TableMap::TYPE_COLNAME, TableMap::TYPE_FIELDNAME, TableMap::TYPE_NUM.
      *                Defaults to TableMap::TYPE_PHPNAME.
-     * @return $this|\Quote\User
+     * @return $this|\Quote\Confirmation
      */
     public function setByName($name, $value, $type = TableMap::TYPE_PHPNAME)
     {
-        $pos = UserTableMap::translateFieldName($name, $type, TableMap::TYPE_NUM);
+        $pos = ConfirmationTableMap::translateFieldName($name, $type, TableMap::TYPE_NUM);
 
         return $this->setByPosition($pos, $value);
     }
@@ -1062,7 +852,7 @@ abstract class User implements ActiveRecordInterface
      *
      * @param  int $pos position in xml schema
      * @param  mixed $value field value
-     * @return $this|\Quote\User
+     * @return $this|\Quote\Confirmation
      */
     public function setByPosition($pos, $value)
     {
@@ -1071,19 +861,10 @@ abstract class User implements ActiveRecordInterface
                 $this->setId($value);
                 break;
             case 1:
-                $this->setUsername($value);
+                $this->setCode($value);
                 break;
             case 2:
-                $this->setPassword($value);
-                break;
-            case 3:
-                $this->setApproved($value);
-                break;
-            case 4:
-                $this->setConfirmed($value);
-                break;
-            case 5:
-                $this->setAdmin($value);
+                $this->setUserId($value);
                 break;
         } // switch()
 
@@ -1109,25 +890,16 @@ abstract class User implements ActiveRecordInterface
      */
     public function fromArray($arr, $keyType = TableMap::TYPE_PHPNAME)
     {
-        $keys = UserTableMap::getFieldNames($keyType);
+        $keys = ConfirmationTableMap::getFieldNames($keyType);
 
         if (array_key_exists($keys[0], $arr)) {
             $this->setId($arr[$keys[0]]);
         }
         if (array_key_exists($keys[1], $arr)) {
-            $this->setUsername($arr[$keys[1]]);
+            $this->setCode($arr[$keys[1]]);
         }
         if (array_key_exists($keys[2], $arr)) {
-            $this->setPassword($arr[$keys[2]]);
-        }
-        if (array_key_exists($keys[3], $arr)) {
-            $this->setApproved($arr[$keys[3]]);
-        }
-        if (array_key_exists($keys[4], $arr)) {
-            $this->setConfirmed($arr[$keys[4]]);
-        }
-        if (array_key_exists($keys[5], $arr)) {
-            $this->setAdmin($arr[$keys[5]]);
+            $this->setUserId($arr[$keys[2]]);
         }
     }
 
@@ -1148,7 +920,7 @@ abstract class User implements ActiveRecordInterface
      * @param string $data The source data to import from
      * @param string $keyType The type of keys the array uses.
      *
-     * @return $this|\Quote\User The current object, for fluid interface
+     * @return $this|\Quote\Confirmation The current object, for fluid interface
      */
     public function importFrom($parser, $data, $keyType = TableMap::TYPE_PHPNAME)
     {
@@ -1168,25 +940,16 @@ abstract class User implements ActiveRecordInterface
      */
     public function buildCriteria()
     {
-        $criteria = new Criteria(UserTableMap::DATABASE_NAME);
+        $criteria = new Criteria(ConfirmationTableMap::DATABASE_NAME);
 
-        if ($this->isColumnModified(UserTableMap::COL_ID)) {
-            $criteria->add(UserTableMap::COL_ID, $this->id);
+        if ($this->isColumnModified(ConfirmationTableMap::COL_ID)) {
+            $criteria->add(ConfirmationTableMap::COL_ID, $this->id);
         }
-        if ($this->isColumnModified(UserTableMap::COL_USERNAME)) {
-            $criteria->add(UserTableMap::COL_USERNAME, $this->username);
+        if ($this->isColumnModified(ConfirmationTableMap::COL_CODE)) {
+            $criteria->add(ConfirmationTableMap::COL_CODE, $this->code);
         }
-        if ($this->isColumnModified(UserTableMap::COL_PASSWORD)) {
-            $criteria->add(UserTableMap::COL_PASSWORD, $this->password);
-        }
-        if ($this->isColumnModified(UserTableMap::COL_APPROVED)) {
-            $criteria->add(UserTableMap::COL_APPROVED, $this->approved);
-        }
-        if ($this->isColumnModified(UserTableMap::COL_CONFIRMED)) {
-            $criteria->add(UserTableMap::COL_CONFIRMED, $this->confirmed);
-        }
-        if ($this->isColumnModified(UserTableMap::COL_ADMIN)) {
-            $criteria->add(UserTableMap::COL_ADMIN, $this->admin);
+        if ($this->isColumnModified(ConfirmationTableMap::COL_USER_ID)) {
+            $criteria->add(ConfirmationTableMap::COL_USER_ID, $this->user_id);
         }
 
         return $criteria;
@@ -1204,8 +967,8 @@ abstract class User implements ActiveRecordInterface
      */
     public function buildPkeyCriteria()
     {
-        $criteria = ChildUserQuery::create();
-        $criteria->add(UserTableMap::COL_ID, $this->id);
+        $criteria = ChildConfirmationQuery::create();
+        $criteria->add(ConfirmationTableMap::COL_ID, $this->id);
 
         return $criteria;
     }
@@ -1267,32 +1030,15 @@ abstract class User implements ActiveRecordInterface
      * If desired, this method can also make copies of all associated (fkey referrers)
      * objects.
      *
-     * @param      object $copyObj An object of \Quote\User (or compatible) type.
+     * @param      object $copyObj An object of \Quote\Confirmation (or compatible) type.
      * @param      boolean $deepCopy Whether to also copy all rows that refer (by fkey) to the current row.
      * @param      boolean $makeNew Whether to reset autoincrement PKs and make the object new.
      * @throws PropelException
      */
     public function copyInto($copyObj, $deepCopy = false, $makeNew = true)
     {
-        $copyObj->setUsername($this->getUsername());
-        $copyObj->setPassword($this->getPassword());
-        $copyObj->setApproved($this->getApproved());
-        $copyObj->setConfirmed($this->getConfirmed());
-        $copyObj->setAdmin($this->getAdmin());
-
-        if ($deepCopy) {
-            // important: temporarily setNew(false) because this affects the behavior of
-            // the getter/setter methods for fkey referrer objects.
-            $copyObj->setNew(false);
-
-            foreach ($this->getConfirmations() as $relObj) {
-                if ($relObj !== $this) {  // ensure that we don't try to copy a reference to ourselves
-                    $copyObj->addConfirmation($relObj->copy($deepCopy));
-                }
-            }
-
-        } // if ($deepCopy)
-
+        $copyObj->setCode($this->getCode());
+        $copyObj->setUserId($this->getUserId());
         if ($makeNew) {
             $copyObj->setNew(true);
             $copyObj->setId(NULL); // this is a auto-increment column, so set to default value
@@ -1308,7 +1054,7 @@ abstract class User implements ActiveRecordInterface
      * objects.
      *
      * @param  boolean $deepCopy Whether to also copy all rows that refer (by fkey) to the current row.
-     * @return \Quote\User Clone of current object.
+     * @return \Quote\Confirmation Clone of current object.
      * @throws PropelException
      */
     public function copy($deepCopy = false)
@@ -1321,238 +1067,55 @@ abstract class User implements ActiveRecordInterface
         return $copyObj;
     }
 
-
     /**
-     * Initializes a collection based on the name of a relation.
-     * Avoids crafting an 'init[$relationName]s' method name
-     * that wouldn't work when StandardEnglishPluralizer is used.
+     * Declares an association between this object and a ChildUser object.
      *
-     * @param      string $relationName The name of the relation to initialize
-     * @return void
-     */
-    public function initRelation($relationName)
-    {
-        if ('Confirmation' == $relationName) {
-            return $this->initConfirmations();
-        }
-    }
-
-    /**
-     * Clears out the collConfirmations collection
-     *
-     * This does not modify the database; however, it will remove any associated objects, causing
-     * them to be refetched by subsequent calls to accessor method.
-     *
-     * @return void
-     * @see        addConfirmations()
-     */
-    public function clearConfirmations()
-    {
-        $this->collConfirmations = null; // important to set this to NULL since that means it is uninitialized
-    }
-
-    /**
-     * Reset is the collConfirmations collection loaded partially.
-     */
-    public function resetPartialConfirmations($v = true)
-    {
-        $this->collConfirmationsPartial = $v;
-    }
-
-    /**
-     * Initializes the collConfirmations collection.
-     *
-     * By default this just sets the collConfirmations collection to an empty array (like clearcollConfirmations());
-     * however, you may wish to override this method in your stub class to provide setting appropriate
-     * to your application -- for example, setting the initial array to the values stored in database.
-     *
-     * @param      boolean $overrideExisting If set to true, the method call initializes
-     *                                        the collection even if it is not empty
-     *
-     * @return void
-     */
-    public function initConfirmations($overrideExisting = true)
-    {
-        if (null !== $this->collConfirmations && !$overrideExisting) {
-            return;
-        }
-        $this->collConfirmations = new ObjectCollection();
-        $this->collConfirmations->setModel('\Quote\Confirmation');
-    }
-
-    /**
-     * Gets an array of ChildConfirmation objects which contain a foreign key that references this object.
-     *
-     * If the $criteria is not null, it is used to always fetch the results from the database.
-     * Otherwise the results are fetched from the database the first time, then cached.
-     * Next time the same method is called without $criteria, the cached collection is returned.
-     * If this ChildUser is new, it will return
-     * an empty collection or the current collection; the criteria is ignored on a new object.
-     *
-     * @param      Criteria $criteria optional Criteria object to narrow the query
-     * @param      ConnectionInterface $con optional connection object
-     * @return ObjectCollection|ChildConfirmation[] List of ChildConfirmation objects
+     * @param  ChildUser $v
+     * @return $this|\Quote\Confirmation The current object (for fluent API support)
      * @throws PropelException
      */
-    public function getConfirmations(Criteria $criteria = null, ConnectionInterface $con = null)
+    public function setUser(ChildUser $v = null)
     {
-        $partial = $this->collConfirmationsPartial && !$this->isNew();
-        if (null === $this->collConfirmations || null !== $criteria  || $partial) {
-            if ($this->isNew() && null === $this->collConfirmations) {
-                // return empty collection
-                $this->initConfirmations();
-            } else {
-                $collConfirmations = ChildConfirmationQuery::create(null, $criteria)
-                    ->filterByUser($this)
-                    ->find($con);
-
-                if (null !== $criteria) {
-                    if (false !== $this->collConfirmationsPartial && count($collConfirmations)) {
-                        $this->initConfirmations(false);
-
-                        foreach ($collConfirmations as $obj) {
-                            if (false == $this->collConfirmations->contains($obj)) {
-                                $this->collConfirmations->append($obj);
-                            }
-                        }
-
-                        $this->collConfirmationsPartial = true;
-                    }
-
-                    return $collConfirmations;
-                }
-
-                if ($partial && $this->collConfirmations) {
-                    foreach ($this->collConfirmations as $obj) {
-                        if ($obj->isNew()) {
-                            $collConfirmations[] = $obj;
-                        }
-                    }
-                }
-
-                $this->collConfirmations = $collConfirmations;
-                $this->collConfirmationsPartial = false;
-            }
+        if ($v === null) {
+            $this->setUserId(NULL);
+        } else {
+            $this->setUserId($v->getId());
         }
 
-        return $this->collConfirmations;
-    }
+        $this->aUser = $v;
 
-    /**
-     * Sets a collection of ChildConfirmation objects related by a one-to-many relationship
-     * to the current object.
-     * It will also schedule objects for deletion based on a diff between old objects (aka persisted)
-     * and new objects from the given Propel collection.
-     *
-     * @param      Collection $confirmations A Propel collection.
-     * @param      ConnectionInterface $con Optional connection object
-     * @return $this|ChildUser The current object (for fluent API support)
-     */
-    public function setConfirmations(Collection $confirmations, ConnectionInterface $con = null)
-    {
-        /** @var ChildConfirmation[] $confirmationsToDelete */
-        $confirmationsToDelete = $this->getConfirmations(new Criteria(), $con)->diff($confirmations);
-
-
-        $this->confirmationsScheduledForDeletion = $confirmationsToDelete;
-
-        foreach ($confirmationsToDelete as $confirmationRemoved) {
-            $confirmationRemoved->setUser(null);
+        // Add binding for other direction of this n:n relationship.
+        // If this object has already been added to the ChildUser object, it will not be re-added.
+        if ($v !== null) {
+            $v->addConfirmation($this);
         }
 
-        $this->collConfirmations = null;
-        foreach ($confirmations as $confirmation) {
-            $this->addConfirmation($confirmation);
-        }
-
-        $this->collConfirmations = $confirmations;
-        $this->collConfirmationsPartial = false;
 
         return $this;
     }
 
+
     /**
-     * Returns the number of related Confirmation objects.
+     * Get the associated ChildUser object
      *
-     * @param      Criteria $criteria
-     * @param      boolean $distinct
-     * @param      ConnectionInterface $con
-     * @return int             Count of related Confirmation objects.
+     * @param  ConnectionInterface $con Optional Connection object.
+     * @return ChildUser The associated ChildUser object.
      * @throws PropelException
      */
-    public function countConfirmations(Criteria $criteria = null, $distinct = false, ConnectionInterface $con = null)
+    public function getUser(ConnectionInterface $con = null)
     {
-        $partial = $this->collConfirmationsPartial && !$this->isNew();
-        if (null === $this->collConfirmations || null !== $criteria || $partial) {
-            if ($this->isNew() && null === $this->collConfirmations) {
-                return 0;
-            }
-
-            if ($partial && !$criteria) {
-                return count($this->getConfirmations());
-            }
-
-            $query = ChildConfirmationQuery::create(null, $criteria);
-            if ($distinct) {
-                $query->distinct();
-            }
-
-            return $query
-                ->filterByUser($this)
-                ->count($con);
+        if ($this->aUser === null && ($this->user_id !== null)) {
+            $this->aUser = ChildUserQuery::create()->findPk($this->user_id, $con);
+            /* The following can be used additionally to
+                guarantee the related object contains a reference
+                to this object.  This level of coupling may, however, be
+                undesirable since it could result in an only partially populated collection
+                in the referenced object.
+                $this->aUser->addConfirmations($this);
+             */
         }
 
-        return count($this->collConfirmations);
-    }
-
-    /**
-     * Method called to associate a ChildConfirmation object to this object
-     * through the ChildConfirmation foreign key attribute.
-     *
-     * @param  ChildConfirmation $l ChildConfirmation
-     * @return $this|\Quote\User The current object (for fluent API support)
-     */
-    public function addConfirmation(ChildConfirmation $l)
-    {
-        if ($this->collConfirmations === null) {
-            $this->initConfirmations();
-            $this->collConfirmationsPartial = true;
-        }
-
-        if (!$this->collConfirmations->contains($l)) {
-            $this->doAddConfirmation($l);
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param ChildConfirmation $confirmation The ChildConfirmation object to add.
-     */
-    protected function doAddConfirmation(ChildConfirmation $confirmation)
-    {
-        $this->collConfirmations[]= $confirmation;
-        $confirmation->setUser($this);
-    }
-
-    /**
-     * @param  ChildConfirmation $confirmation The ChildConfirmation object to remove.
-     * @return $this|ChildUser The current object (for fluent API support)
-     */
-    public function removeConfirmation(ChildConfirmation $confirmation)
-    {
-        if ($this->getConfirmations()->contains($confirmation)) {
-            $pos = $this->collConfirmations->search($confirmation);
-            $this->collConfirmations->remove($pos);
-            if (null === $this->confirmationsScheduledForDeletion) {
-                $this->confirmationsScheduledForDeletion = clone $this->collConfirmations;
-                $this->confirmationsScheduledForDeletion->clear();
-            }
-            $this->confirmationsScheduledForDeletion[]= $confirmation;
-            $confirmation->setUser(null);
-        }
-
-        return $this;
+        return $this->aUser;
     }
 
     /**
@@ -1562,12 +1125,12 @@ abstract class User implements ActiveRecordInterface
      */
     public function clear()
     {
+        if (null !== $this->aUser) {
+            $this->aUser->removeConfirmation($this);
+        }
         $this->id = null;
-        $this->username = null;
-        $this->password = null;
-        $this->approved = null;
-        $this->confirmed = null;
-        $this->admin = null;
+        $this->code = null;
+        $this->user_id = null;
         $this->alreadyInSave = false;
         $this->clearAllReferences();
         $this->resetModified();
@@ -1586,14 +1149,9 @@ abstract class User implements ActiveRecordInterface
     public function clearAllReferences($deep = false)
     {
         if ($deep) {
-            if ($this->collConfirmations) {
-                foreach ($this->collConfirmations as $o) {
-                    $o->clearAllReferences($deep);
-                }
-            }
         } // if ($deep)
 
-        $this->collConfirmations = null;
+        $this->aUser = null;
     }
 
     /**
@@ -1603,7 +1161,7 @@ abstract class User implements ActiveRecordInterface
      */
     public function __toString()
     {
-        return (string) $this->exportTo(UserTableMap::DEFAULT_STRING_FORMAT);
+        return (string) $this->exportTo(ConfirmationTableMap::DEFAULT_STRING_FORMAT);
     }
 
     /**

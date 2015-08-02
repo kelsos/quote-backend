@@ -89,6 +89,16 @@
         </foreign-key>
     </table>
 
+    <table name="confirmation" phpName="Confirmation">
+        <column name="id" type="integer" required="true" primaryKey="true" autoIncrement="true"/>
+        <column name="code" type="varchar" size="32" required="true"/>
+        <column name="user_id" type="integer"/>
+
+        <foreign-key foreignTable="user">
+            <reference local="user_id" foreign="id"/>
+        </foreign-key>
+    </table>
+
     <!--
         When you're done with editing, open a terminal and run
             `$ cd propel`

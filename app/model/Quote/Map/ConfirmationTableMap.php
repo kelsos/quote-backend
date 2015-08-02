@@ -11,12 +11,12 @@ use Propel\Runtime\Exception\PropelException;
 use Propel\Runtime\Map\RelationMap;
 use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Map\TableMapTrait;
-use Quote\User;
-use Quote\UserQuery;
+use Quote\Confirmation;
+use Quote\ConfirmationQuery;
 
 
 /**
- * This class defines the structure of the 'user' table.
+ * This class defines the structure of the 'confirmation' table.
  *
  *
  *
@@ -26,7 +26,7 @@ use Quote\UserQuery;
  * (i.e. if it's a text column type).
  *
  */
-class UserTableMap extends TableMap
+class ConfirmationTableMap extends TableMap
 {
     use InstancePoolTrait;
     use TableMapTrait;
@@ -34,7 +34,7 @@ class UserTableMap extends TableMap
     /**
      * The (dot-path) name of this class
      */
-    const CLASS_NAME = 'Quote.Map.UserTableMap';
+    const CLASS_NAME = 'Quote.Map.ConfirmationTableMap';
 
     /**
      * The default database name for this class
@@ -44,22 +44,22 @@ class UserTableMap extends TableMap
     /**
      * The table name for this class
      */
-    const TABLE_NAME = 'user';
+    const TABLE_NAME = 'confirmation';
 
     /**
      * The related Propel class for this table
      */
-    const OM_CLASS = '\\Quote\\User';
+    const OM_CLASS = '\\Quote\\Confirmation';
 
     /**
      * A class that can be returned by this tableMap
      */
-    const CLASS_DEFAULT = 'Quote.User';
+    const CLASS_DEFAULT = 'Quote.Confirmation';
 
     /**
      * The total number of columns
      */
-    const NUM_COLUMNS = 6;
+    const NUM_COLUMNS = 3;
 
     /**
      * The number of lazy-loaded columns
@@ -69,37 +69,22 @@ class UserTableMap extends TableMap
     /**
      * The number of columns to hydrate (NUM_COLUMNS - NUM_LAZY_LOAD_COLUMNS)
      */
-    const NUM_HYDRATE_COLUMNS = 6;
+    const NUM_HYDRATE_COLUMNS = 3;
 
     /**
      * the column name for the id field
      */
-    const COL_ID = 'user.id';
+    const COL_ID = 'confirmation.id';
 
     /**
-     * the column name for the username field
+     * the column name for the code field
      */
-    const COL_USERNAME = 'user.username';
+    const COL_CODE = 'confirmation.code';
 
     /**
-     * the column name for the password field
+     * the column name for the user_id field
      */
-    const COL_PASSWORD = 'user.password';
-
-    /**
-     * the column name for the approved field
-     */
-    const COL_APPROVED = 'user.approved';
-
-    /**
-     * the column name for the confirmed field
-     */
-    const COL_CONFIRMED = 'user.confirmed';
-
-    /**
-     * the column name for the admin field
-     */
-    const COL_ADMIN = 'user.admin';
+    const COL_USER_ID = 'confirmation.user_id';
 
     /**
      * The default string format for model objects of the related table
@@ -113,11 +98,11 @@ class UserTableMap extends TableMap
      * e.g. self::$fieldNames[self::TYPE_PHPNAME][0] = 'Id'
      */
     protected static $fieldNames = array (
-        self::TYPE_PHPNAME       => array('Id', 'Username', 'Password', 'Approved', 'Confirmed', 'Admin', ),
-        self::TYPE_CAMELNAME     => array('id', 'username', 'password', 'approved', 'confirmed', 'admin', ),
-        self::TYPE_COLNAME       => array(UserTableMap::COL_ID, UserTableMap::COL_USERNAME, UserTableMap::COL_PASSWORD, UserTableMap::COL_APPROVED, UserTableMap::COL_CONFIRMED, UserTableMap::COL_ADMIN, ),
-        self::TYPE_FIELDNAME     => array('id', 'username', 'password', 'approved', 'confirmed', 'admin', ),
-        self::TYPE_NUM           => array(0, 1, 2, 3, 4, 5, )
+        self::TYPE_PHPNAME       => array('Id', 'Code', 'UserId', ),
+        self::TYPE_CAMELNAME     => array('id', 'code', 'userId', ),
+        self::TYPE_COLNAME       => array(ConfirmationTableMap::COL_ID, ConfirmationTableMap::COL_CODE, ConfirmationTableMap::COL_USER_ID, ),
+        self::TYPE_FIELDNAME     => array('id', 'code', 'user_id', ),
+        self::TYPE_NUM           => array(0, 1, 2, )
     );
 
     /**
@@ -127,11 +112,11 @@ class UserTableMap extends TableMap
      * e.g. self::$fieldKeys[self::TYPE_PHPNAME]['Id'] = 0
      */
     protected static $fieldKeys = array (
-        self::TYPE_PHPNAME       => array('Id' => 0, 'Username' => 1, 'Password' => 2, 'Approved' => 3, 'Confirmed' => 4, 'Admin' => 5, ),
-        self::TYPE_CAMELNAME     => array('id' => 0, 'username' => 1, 'password' => 2, 'approved' => 3, 'confirmed' => 4, 'admin' => 5, ),
-        self::TYPE_COLNAME       => array(UserTableMap::COL_ID => 0, UserTableMap::COL_USERNAME => 1, UserTableMap::COL_PASSWORD => 2, UserTableMap::COL_APPROVED => 3, UserTableMap::COL_CONFIRMED => 4, UserTableMap::COL_ADMIN => 5, ),
-        self::TYPE_FIELDNAME     => array('id' => 0, 'username' => 1, 'password' => 2, 'approved' => 3, 'confirmed' => 4, 'admin' => 5, ),
-        self::TYPE_NUM           => array(0, 1, 2, 3, 4, 5, )
+        self::TYPE_PHPNAME       => array('Id' => 0, 'Code' => 1, 'UserId' => 2, ),
+        self::TYPE_CAMELNAME     => array('id' => 0, 'code' => 1, 'userId' => 2, ),
+        self::TYPE_COLNAME       => array(ConfirmationTableMap::COL_ID => 0, ConfirmationTableMap::COL_CODE => 1, ConfirmationTableMap::COL_USER_ID => 2, ),
+        self::TYPE_FIELDNAME     => array('id' => 0, 'code' => 1, 'user_id' => 2, ),
+        self::TYPE_NUM           => array(0, 1, 2, )
     );
 
     /**
@@ -144,19 +129,16 @@ class UserTableMap extends TableMap
     public function initialize()
     {
         // attributes
-        $this->setName('user');
-        $this->setPhpName('User');
+        $this->setName('confirmation');
+        $this->setPhpName('Confirmation');
         $this->setIdentifierQuoting(false);
-        $this->setClassName('\\Quote\\User');
+        $this->setClassName('\\Quote\\Confirmation');
         $this->setPackage('Quote');
         $this->setUseIdGenerator(true);
         // columns
         $this->addPrimaryKey('id', 'Id', 'INTEGER', true, null, null);
-        $this->addColumn('username', 'Username', 'VARCHAR', true, 255, null);
-        $this->addColumn('password', 'Password', 'VARCHAR', true, 255, null);
-        $this->addColumn('approved', 'Approved', 'BOOLEAN', false, 1, null);
-        $this->addColumn('confirmed', 'Confirmed', 'BOOLEAN', false, 1, null);
-        $this->addColumn('admin', 'Admin', 'BOOLEAN', false, 1, null);
+        $this->addColumn('code', 'Code', 'VARCHAR', true, 32, null);
+        $this->addForeignKey('user_id', 'UserId', 'INTEGER', 'user', 'id', false, null, null);
     } // initialize()
 
     /**
@@ -164,13 +146,13 @@ class UserTableMap extends TableMap
      */
     public function buildRelations()
     {
-        $this->addRelation('Confirmation', '\\Quote\\Confirmation', RelationMap::ONE_TO_MANY, array (
+        $this->addRelation('User', '\\Quote\\User', RelationMap::MANY_TO_ONE, array (
   0 =>
   array (
     0 => ':user_id',
     1 => ':id',
   ),
-), null, null, 'Confirmations', false);
+), null, null, null, false);
     } // buildRelations()
 
     /**
@@ -230,7 +212,7 @@ class UserTableMap extends TableMap
      */
     public static function getOMClass($withPrefix = true)
     {
-        return $withPrefix ? UserTableMap::CLASS_DEFAULT : UserTableMap::OM_CLASS;
+        return $withPrefix ? ConfirmationTableMap::CLASS_DEFAULT : ConfirmationTableMap::OM_CLASS;
     }
 
     /**
@@ -244,22 +226,22 @@ class UserTableMap extends TableMap
      *
      * @throws PropelException Any exceptions caught during processing will be
      *                         rethrown wrapped into a PropelException.
-     * @return array           (User object, last column rank)
+     * @return array           (Confirmation object, last column rank)
      */
     public static function populateObject($row, $offset = 0, $indexType = TableMap::TYPE_NUM)
     {
-        $key = UserTableMap::getPrimaryKeyHashFromRow($row, $offset, $indexType);
-        if (null !== ($obj = UserTableMap::getInstanceFromPool($key))) {
+        $key = ConfirmationTableMap::getPrimaryKeyHashFromRow($row, $offset, $indexType);
+        if (null !== ($obj = ConfirmationTableMap::getInstanceFromPool($key))) {
             // We no longer rehydrate the object, since this can cause data loss.
             // See http://www.propelorm.org/ticket/509
             // $obj->hydrate($row, $offset, true); // rehydrate
-            $col = $offset + UserTableMap::NUM_HYDRATE_COLUMNS;
+            $col = $offset + ConfirmationTableMap::NUM_HYDRATE_COLUMNS;
         } else {
-            $cls = UserTableMap::OM_CLASS;
-            /** @var User $obj */
+            $cls = ConfirmationTableMap::OM_CLASS;
+            /** @var Confirmation $obj */
             $obj = new $cls();
             $col = $obj->hydrate($row, $offset, false, $indexType);
-            UserTableMap::addInstanceToPool($obj, $key);
+            ConfirmationTableMap::addInstanceToPool($obj, $key);
         }
 
         return array($obj, $col);
@@ -282,18 +264,18 @@ class UserTableMap extends TableMap
         $cls = static::getOMClass(false);
         // populate the object(s)
         while ($row = $dataFetcher->fetch()) {
-            $key = UserTableMap::getPrimaryKeyHashFromRow($row, 0, $dataFetcher->getIndexType());
-            if (null !== ($obj = UserTableMap::getInstanceFromPool($key))) {
+            $key = ConfirmationTableMap::getPrimaryKeyHashFromRow($row, 0, $dataFetcher->getIndexType());
+            if (null !== ($obj = ConfirmationTableMap::getInstanceFromPool($key))) {
                 // We no longer rehydrate the object, since this can cause data loss.
                 // See http://www.propelorm.org/ticket/509
                 // $obj->hydrate($row, 0, true); // rehydrate
                 $results[] = $obj;
             } else {
-                /** @var User $obj */
+                /** @var Confirmation $obj */
                 $obj = new $cls();
                 $obj->hydrate($row);
                 $results[] = $obj;
-                UserTableMap::addInstanceToPool($obj, $key);
+                ConfirmationTableMap::addInstanceToPool($obj, $key);
             } // if key exists
         }
 
@@ -314,19 +296,13 @@ class UserTableMap extends TableMap
     public static function addSelectColumns(Criteria $criteria, $alias = null)
     {
         if (null === $alias) {
-            $criteria->addSelectColumn(UserTableMap::COL_ID);
-            $criteria->addSelectColumn(UserTableMap::COL_USERNAME);
-            $criteria->addSelectColumn(UserTableMap::COL_PASSWORD);
-            $criteria->addSelectColumn(UserTableMap::COL_APPROVED);
-            $criteria->addSelectColumn(UserTableMap::COL_CONFIRMED);
-            $criteria->addSelectColumn(UserTableMap::COL_ADMIN);
+            $criteria->addSelectColumn(ConfirmationTableMap::COL_ID);
+            $criteria->addSelectColumn(ConfirmationTableMap::COL_CODE);
+            $criteria->addSelectColumn(ConfirmationTableMap::COL_USER_ID);
         } else {
             $criteria->addSelectColumn($alias . '.id');
-            $criteria->addSelectColumn($alias . '.username');
-            $criteria->addSelectColumn($alias . '.password');
-            $criteria->addSelectColumn($alias . '.approved');
-            $criteria->addSelectColumn($alias . '.confirmed');
-            $criteria->addSelectColumn($alias . '.admin');
+            $criteria->addSelectColumn($alias . '.code');
+            $criteria->addSelectColumn($alias . '.user_id');
         }
     }
 
@@ -339,7 +315,7 @@ class UserTableMap extends TableMap
      */
     public static function getTableMap()
     {
-        return Propel::getServiceContainer()->getDatabaseMap(UserTableMap::DATABASE_NAME)->getTable(UserTableMap::TABLE_NAME);
+        return Propel::getServiceContainer()->getDatabaseMap(ConfirmationTableMap::DATABASE_NAME)->getTable(ConfirmationTableMap::TABLE_NAME);
     }
 
     /**
@@ -347,16 +323,16 @@ class UserTableMap extends TableMap
      */
     public static function buildTableMap()
     {
-        $dbMap = Propel::getServiceContainer()->getDatabaseMap(UserTableMap::DATABASE_NAME);
-        if (!$dbMap->hasTable(UserTableMap::TABLE_NAME)) {
-            $dbMap->addTableObject(new UserTableMap());
+        $dbMap = Propel::getServiceContainer()->getDatabaseMap(ConfirmationTableMap::DATABASE_NAME);
+        if (!$dbMap->hasTable(ConfirmationTableMap::TABLE_NAME)) {
+            $dbMap->addTableObject(new ConfirmationTableMap());
         }
     }
 
     /**
-     * Performs a DELETE on the database, given a User or Criteria object OR a primary key value.
+     * Performs a DELETE on the database, given a Confirmation or Criteria object OR a primary key value.
      *
-     * @param mixed               $values Criteria or User object or primary key or array of primary keys
+     * @param mixed               $values Criteria or Confirmation object or primary key or array of primary keys
      *              which is used to create the DELETE statement
      * @param  ConnectionInterface $con the connection to use
      * @return int             The number of affected rows (if supported by underlying database driver).  This includes CASCADE-related rows
@@ -367,27 +343,27 @@ class UserTableMap extends TableMap
      public static function doDelete($values, ConnectionInterface $con = null)
      {
         if (null === $con) {
-            $con = Propel::getServiceContainer()->getWriteConnection(UserTableMap::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getWriteConnection(ConfirmationTableMap::DATABASE_NAME);
         }
 
         if ($values instanceof Criteria) {
             // rename for clarity
             $criteria = $values;
-        } elseif ($values instanceof \Quote\User) { // it's a model object
+        } elseif ($values instanceof \Quote\Confirmation) { // it's a model object
             // create criteria based on pk values
             $criteria = $values->buildPkeyCriteria();
         } else { // it's a primary key, or an array of pks
-            $criteria = new Criteria(UserTableMap::DATABASE_NAME);
-            $criteria->add(UserTableMap::COL_ID, (array) $values, Criteria::IN);
+            $criteria = new Criteria(ConfirmationTableMap::DATABASE_NAME);
+            $criteria->add(ConfirmationTableMap::COL_ID, (array) $values, Criteria::IN);
         }
 
-        $query = UserQuery::create()->mergeWith($criteria);
+        $query = ConfirmationQuery::create()->mergeWith($criteria);
 
         if ($values instanceof Criteria) {
-            UserTableMap::clearInstancePool();
+            ConfirmationTableMap::clearInstancePool();
         } elseif (!is_object($values)) { // it's a primary key, or an array of pks
             foreach ((array) $values as $singleval) {
-                UserTableMap::removeInstanceFromPool($singleval);
+                ConfirmationTableMap::removeInstanceFromPool($singleval);
             }
         }
 
@@ -395,20 +371,20 @@ class UserTableMap extends TableMap
     }
 
     /**
-     * Deletes all rows from the user table.
+     * Deletes all rows from the confirmation table.
      *
      * @param ConnectionInterface $con the connection to use
      * @return int The number of affected rows (if supported by underlying database driver).
      */
     public static function doDeleteAll(ConnectionInterface $con = null)
     {
-        return UserQuery::create()->doDeleteAll($con);
+        return ConfirmationQuery::create()->doDeleteAll($con);
     }
 
     /**
-     * Performs an INSERT on the database, given a User or Criteria object.
+     * Performs an INSERT on the database, given a Confirmation or Criteria object.
      *
-     * @param mixed               $criteria Criteria or User object containing data that is used to create the INSERT statement.
+     * @param mixed               $criteria Criteria or Confirmation object containing data that is used to create the INSERT statement.
      * @param ConnectionInterface $con the ConnectionInterface connection to use
      * @return mixed           The new primary key.
      * @throws PropelException Any exceptions caught during processing will be
@@ -417,22 +393,22 @@ class UserTableMap extends TableMap
     public static function doInsert($criteria, ConnectionInterface $con = null)
     {
         if (null === $con) {
-            $con = Propel::getServiceContainer()->getWriteConnection(UserTableMap::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getWriteConnection(ConfirmationTableMap::DATABASE_NAME);
         }
 
         if ($criteria instanceof Criteria) {
             $criteria = clone $criteria; // rename for clarity
         } else {
-            $criteria = $criteria->buildCriteria(); // build Criteria from User object
+            $criteria = $criteria->buildCriteria(); // build Criteria from Confirmation object
         }
 
-        if ($criteria->containsKey(UserTableMap::COL_ID) && $criteria->keyContainsValue(UserTableMap::COL_ID) ) {
-            throw new PropelException('Cannot insert a value for auto-increment primary key ('.UserTableMap::COL_ID.')');
+        if ($criteria->containsKey(ConfirmationTableMap::COL_ID) && $criteria->keyContainsValue(ConfirmationTableMap::COL_ID) ) {
+            throw new PropelException('Cannot insert a value for auto-increment primary key ('.ConfirmationTableMap::COL_ID.')');
         }
 
 
         // Set the correct dbName
-        $query = UserQuery::create()->mergeWith($criteria);
+        $query = ConfirmationQuery::create()->mergeWith($criteria);
 
         // use transaction because $criteria could contain info
         // for more than one table (I guess, conceivably)
@@ -441,7 +417,7 @@ class UserTableMap extends TableMap
         });
     }
 
-} // UserTableMap
+} // ConfirmationTableMap
 // This is the static code needed to register the TableMap for this table with the main Propel class.
 //
-UserTableMap::buildTableMap();
+ConfirmationTableMap::buildTableMap();

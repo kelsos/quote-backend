@@ -4,7 +4,8 @@
     "propel/propel": "~2.0@dev",
     "firebase/php-jwt": "^2.1",
     "symfony/yaml": "2.6.8",
-    "ircmaxell/password-compat": "1.0.4"
+    "ircmaxell/password-compat": "1.0.4",
+    "phpmailer/phpmailer": "^5.2"
   },
   "autoload": {
     "classmap": [

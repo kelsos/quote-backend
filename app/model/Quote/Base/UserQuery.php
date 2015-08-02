@@ -7,6 +7,7 @@ use \PDO;
 use Propel\Runtime\Propel;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
+use Propel\Runtime\ActiveQuery\ModelJoin;
 use Propel\Runtime\Collection\ObjectCollection;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Propel\Runtime\Exception\PropelException;
@@ -36,6 +37,12 @@ use Quote\Map\UserTableMap;
  * @method     ChildUserQuery leftJoin($relation) Adds a LEFT JOIN clause to the query
  * @method     ChildUserQuery rightJoin($relation) Adds a RIGHT JOIN clause to the query
  * @method     ChildUserQuery innerJoin($relation) Adds a INNER JOIN clause to the query
+ *
+ * @method     ChildUserQuery leftJoinConfirmation($relationAlias = null) Adds a LEFT JOIN clause to the query using the Confirmation relation
+ * @method     ChildUserQuery rightJoinConfirmation($relationAlias = null) Adds a RIGHT JOIN clause to the query using the Confirmation relation
+ * @method     ChildUserQuery innerJoinConfirmation($relationAlias = null) Adds a INNER JOIN clause to the query using the Confirmation relation
+ *
+ * @method     \Quote\ConfirmationQuery endUse() Finalizes a secondary criteria and merges it with its primary Criteria
  *
  * @method     ChildUser findOne(ConnectionInterface $con = null) Return the first ChildUser matching the query
  * @method     ChildUser findOneOrCreate(ConnectionInterface $con = null) Return the first ChildUser matching the query, or a new ChildUser object populated from the query conditions when no match is found
@@ -424,6 +431,79 @@ abstract class UserQuery extends ModelCriteria
         }
 
         return $this->addUsingAlias(UserTableMap::COL_ADMIN, $admin, $comparison);
+    }
+
+    /**
+     * Filter the query by a related \Quote\Confirmation object
+     *
+     * @param \Quote\Confirmation|ObjectCollection $confirmation the related object to use as filter
+     * @param string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return ChildUserQuery The current query, for fluid interface
+     */
+    public function filterByConfirmation($confirmation, $comparison = null)
+    {
+        if ($confirmation instanceof \Quote\Confirmation) {
+            return $this
+                ->addUsingAlias(UserTableMap::COL_ID, $confirmation->getUserId(), $comparison);
+        } elseif ($confirmation instanceof ObjectCollection) {
+            return $this
+                ->useConfirmationQuery()
+                ->filterByPrimaryKeys($confirmation->getPrimaryKeys())
+                ->endUse();
+        } else {
+            throw new PropelException('filterByConfirmation() only accepts arguments of type \Quote\Confirmation or Collection');
+        }
+    }
+
+    /**
+     * Adds a JOIN clause to the query using the Confirmation relation
+     *
+     * @param     string $relationAlias optional alias for the relation
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return $this|ChildUserQuery The current query, for fluid interface
+     */
+    public function joinConfirmation($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
+    {
+        $tableMap = $this->getTableMap();
+        $relationMap = $tableMap->getRelation('Confirmation');
+
+        // create a ModelJoin object for this join
+        $join = new ModelJoin();
+        $join->setJoinType($joinType);
+        $join->setRelationMap($relationMap, $this->useAliasInSQL ? $this->getModelAlias() : null, $relationAlias);
+        if ($previousJoin = $this->getPreviousJoin()) {
+            $join->setPreviousJoin($previousJoin);
+        }
+
+        // add the ModelJoin to the current object
+        if ($relationAlias) {
+            $this->addAlias($relationAlias, $relationMap->getRightTable()->getName());
+            $this->addJoinObject($join, $relationAlias);
+        } else {
+            $this->addJoinObject($join, 'Confirmation');
+        }
+
+        return $this;
+    }
+
+    /**
+     * Use the Confirmation relation Confirmation object
+     *
+     * @see useQuery()
+     *
+     * @param     string $relationAlias optional alias for the relation,
+     *                                   to be used as main alias in the secondary query
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return \Quote\ConfirmationQuery A secondary query class using the current class as primary query
+     */
+    public function useConfirmationQuery($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
+    {
+        return $this
+            ->joinConfirmation($relationAlias, $joinType)
+            ->useQuery($relationAlias ? $relationAlias : 'Confirmation', '\Quote\ConfirmationQuery');
     }
 
     /**
