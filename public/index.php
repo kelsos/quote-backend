@@ -5,7 +5,10 @@ const PASS_LENGTH = 4;
 require_once '../vendor/autoload.php';
 require_once '../generated-conf/config.php';
 
+use helpers\QuoteMailer;
 use Propel\Runtime\Map\TableMap;
+use Quote\Confirmation;
+use Quote\ConfirmationQuery;
 use Quote\Quote;
 use Quote\QuoteQuery;
 use Quote\User;
@@ -144,7 +147,14 @@ $app->post("/register", 'json', function () use ($app) {
   $user->setPassword($password_hash);
   $user->setApproved(false);
   $user->setAdmin(false);
+  $user->setConfirmed(false);
   $rowsAffected = $user->save();
+
+  $confirmation = new Confirmation();
+  $confirmation->setUser($user);
+  $confirmationCode = md5(uniqid(rand(), true));
+  $confirmation->setCode($confirmationCode);
+  $confirmation->save();
 
   $result = [
     "success" => $rowsAffected > 0,
@@ -152,15 +162,38 @@ $app->post("/register", 'json', function () use ($app) {
   ];
 
   if ($rowsAffected > 0) {
-    try {
-      mail($mail, "New user at Quote", "A new user (" . $username . ") has been registered and awaiting approval");
-    } catch (Exception $ex) {
-
-    }
+    $url = StateManager::getInstance()->getDomain() . "/confirm/". $confirmationCode;
+    QuoteMailer::getInstance()->sendConfirmationMail($username, $url, $mail);
+    QuoteMailer::getInstance()->sendAdminMail($mail, $username, $mail);
   }
 
   $app->response()->setBody(json_encode($result));
 
+});
+
+$app->get("/confirm/:code", function ($code) use ($app) {
+  $confirmationQuery = ConfirmationQuery::create();
+  $confirm = $confirmationQuery->findOneByCode($code);
+
+  $result_code = Constants::NOT_FOUND;
+
+  if ($confirm != null) {
+    $userQuery = UserQuery::create();
+    $user = $userQuery->findOneById($confirm->getUserId());
+
+    if ($user != null) {
+      $user->setConfirmed(true);
+      $user->save();
+      $confirm->delete();
+      $result_code = Constants::SUCCESS;
+    }
+  }
+
+  $result = [
+    "code" => $result_code
+  ];
+
+  $app->response()->setBody(json_encode($result));
 });
 
 $app->post("/login", 'json', function () use ($app) {

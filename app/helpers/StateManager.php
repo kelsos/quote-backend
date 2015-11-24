@@ -8,10 +8,47 @@ use Symfony\Component\Yaml\Yaml;
 class StateManager
 {
 
+  private static $instance;
   private $secret;
   private $mail;
   private $environment;
   private $tokenData;
+  private $smtpUsername;
+  private $smtpPassword;
+  private $smtpHostname;
+  private $smtpPort;
+  private $domain;
+
+  /**
+   * Protected constructor to prevent creating a new instance of the
+   * *Singleton* via the `new` operator from outside of this class.
+   */
+  protected function __construct()
+  {
+    $config = Yaml::parse(file_get_contents("../config.yaml"));
+    $this->secret = $config['secret'];
+    $this->mail = $config['mail'];
+    $this->environment = $config['environment'];
+    $this->smtpHostname = $config['smtp_server'];
+    $this->smtpPort = $config['smtp_port'];
+    $this->smtpUsername = $config['smtp_username'];
+    $this->smtpPassword = $config['smtp_password'];
+    $this->domain = $config['domain'];
+
+  }
+
+  /**
+   * Gives access to the single instance of {@link StateManager}
+   * @return StateManager
+   */
+  public static function getInstance()
+  {
+    if (null == static::$instance) {
+      static::$instance = new static();
+    }
+
+    return static::$instance;
+  }
 
   /**
    * @return mixed
@@ -58,34 +95,46 @@ class StateManager
    * The method will return true when the configuration points on development
    * @return bool
    */
-  public function isDevelopment() {
+  public function isDevelopment()
+  {
     return strcmp($this->environment, 'development') !== false;
   }
 
-  private static $instance;
-
   /**
-   * Gives access to the single instance of {@link StateManager}
-   * @return StateManager
+   * Returns the username of the user on the smtp server used to send e-mails
+   * @return String
    */
-  public static function getInstance()
+  public function getSmtpUsername()
   {
-    if (null == static::$instance) {
-      static::$instance = new static();
-    }
-    return static::$instance;
+    return $this->smtpUsername;
   }
 
   /**
-   * Protected constructor to prevent creating a new instance of the
-   * *Singleton* via the `new` operator from outside of this class.
+   * @return String
    */
-  protected function __construct()
+  public function getSmtpPassword()
   {
-    $config = Yaml::parse(file_get_contents("../config.yaml"));
-    $this->secret = $config['secret'];
-    $this->mail = $config['mail'];
-    $this->environment = $config['environment'];
+    return $this->smtpPassword;
+  }
+
+  /**
+   * @return String
+   */
+  public function getSmtpHostname()
+  {
+    return $this->smtpHostname;
+  }
+
+  /**
+   * @return int
+   */
+  public function getSmtpPort()
+  {
+    return $this->smtpPort;
+  }
+
+  public function getDomain() {
+    return $this->domain;
   }
 
   /**
