@@ -6,6 +6,8 @@ require_once '../vendor/autoload.php';
 require_once '../generated-conf/config.php';
 
 use helpers\QuoteMailer;
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
 use Propel\Runtime\Map\TableMap;
 use Quote\Confirmation;
 use Quote\ConfirmationQuery;
@@ -20,6 +22,12 @@ use Slim\Route;
 use Slim\Slim;
 
 $app = new Slim();
+
+$app->container->singleton('log', function () {
+  $log = new Logger('quote');
+  $log->pushHandler(new StreamHandler('../logs/app.log', Logger::DEBUG));
+  return $log;
+});
 
 $request = $app->request;
 
@@ -156,16 +164,12 @@ $app->post("/register", 'json', function () use ($app) {
   $confirmation->setCode($confirmationCode);
   $confirmation->save();
 
+  QuoteMailer::getInstance()->sendConfirmation($username, $_SERVER['SERVER_NAME']."/confirm/".$confirmationCode, $mail);
+
   $result = [
     "success" => $rowsAffected > 0,
     "code" => Constants::SUCCESS
   ];
-
-  if ($rowsAffected > 0) {
-    $url = StateManager::getInstance()->getDomain() . "/confirm/". $confirmationCode;
-    QuoteMailer::getInstance()->sendConfirmationMail($username, $url, $mail);
-    QuoteMailer::getInstance()->sendAdminMail($mail, $username, $mail);
-  }
 
   $app->response()->setBody(json_encode($result));
 
@@ -312,16 +316,8 @@ $app->group("/password", function() use ($app)  {
     $stateManager = StateManager::getInstance();
     $jwt = JWT::encode($token, $stateManager->getSecret());
 
-    $success = true;
-
-    try {
-      mail($email, "Password reset requests", "here " . $jwt, null, '-f' . $stateManager->getMail());
-    } catch (Exception $ex) {
-      $success = false;
-    }
-
     $app->response()->setBody(json_encode([
-      'success' => $success,
+      'success' => true,
       'token' => $jwt,
       'code' => Constants::SUCCESS
     ]));

@@ -2,10 +2,14 @@
   "require": {
     "slim/slim": "^2.6",
     "propel/propel": "~2.0@dev",
+    "monolog/monolog": "1.*",
     "firebase/php-jwt": "^2.1",
     "symfony/yaml": "2.6.8",
     "ircmaxell/password-compat": "1.0.4",
     "phpmailer/phpmailer": "^5.2"
+  },
+  "require-dev": {
+    "phing/phing": "2.*"
   },
   "autoload": {
     "classmap": [
