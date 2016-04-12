@@ -83,7 +83,7 @@ class Helpers
   static function getUserToken(Request $request)
   {
     $token = "";
-    $authorization_header = $request->getHeader("Authorization");
+    $authorization_header = $request->getHeaderLine("Authorization");
     if (strpos($authorization_header, "Bearer") !== false) {
       $token = explode(" ", $authorization_header)[1];
     }

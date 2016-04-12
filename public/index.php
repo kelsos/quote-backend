@@ -37,6 +37,7 @@ $config = [
 ];
 
 $app = new Slim\App($config);
+$development = StateManager::getInstance()->isDevelopment();
 
 $app->get('/', function (Request $req, Response $resp, $args = []) use ($app) {
 
@@ -351,14 +352,15 @@ $cont['notFoundHandler'] = function ($c) {
   };
 };
 
-$cont['errorHandler'] = function ($c) {
-  return function ($request, $response, $exception) use ($c) {
+$cont['errorHandler'] = function ($c) use ($development) {
+  return function ($request, $response, $exception) use ($c, $development) {
     $error = new Error(false, Constants::SERVER_ERROR, "Internal server error");
+    if ($development) {
+      return $c['response']->withStatus(Constants::SERVER_ERROR)->write($exception);
+    }
     return $c['response']->withJson($error, $error->getCode());
   };
 };
-
-$development = StateManager::getInstance()->isDevelopment();
 
 $app->add(function (Request $request, Response $response, $next) {
   $response->withHeader("Content-Type", "application/json");
