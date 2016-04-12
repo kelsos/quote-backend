@@ -5,9 +5,11 @@ const PASS_LENGTH = 4;
 require_once '../vendor/autoload.php';
 require_once '../generated-conf/config.php';
 
+use Firebase\JWT\JWT;
 use helpers\QuoteMailer;
-use Monolog\Handler\StreamHandler;
-use Monolog\Logger;
+use middleware\Authenticated;
+use middleware\Authorized;
+use middleware\ValidJson;
 use Propel\Runtime\Map\TableMap;
 use Quote\Confirmation;
 use Quote\ConfirmationQuery;
@@ -15,87 +17,65 @@ use Quote\Quote;
 use Quote\QuoteQuery;
 use Quote\User;
 use Quote\UserQuery;
-use QuoteEnd\StateManager;
 use QuoteEnd\Constants;
+use QuoteEnd\Error;
 use QuoteEnd\Helpers;
-use Slim\Route;
-use Slim\Slim;
+use QuoteEnd\StateManager;
+use Slim\Http\Request;
+use Slim\Http\Response;
 
-$app = new Slim();
+$config = [
+  'settings' => [
+    'displayErrorDetails' => true,
 
-$app->container->singleton('log', function () {
-  $log = new Logger('quote');
-  $log->pushHandler(new StreamHandler('../logs/app.log', Logger::DEBUG));
-  return $log;
-});
+    'logger' => [
+      'name' => 'slim-app',
+      'level' => Monolog\Logger::DEBUG,
+      'path' => __DIR__ . '/../logs/app.log',
+    ],
+  ],
+];
 
-$request = $app->request;
+$app = new Slim\App($config);
 
-/**
- * Checks and validates the user's request by validating the provided jwt token.
- * @param Route $route
- */
-function authenticate(Route $route)
-{
-  $app = Slim::getInstance();
-  $token = Helpers::getUserToken($app);
-  $secret = StateManager::getInstance()->getSecret();
-  $validated = Helpers::validateToken($token, $secret, $app);
-  StateManager::getInstance()->setTokenData($validated);
-}
-
-function authorize(Route $route)
-{
-  $app = Slim::getInstance();
-  $user_id = StateManager::getInstance()->getTokenData()->{'id'};
-  $active_user = UserQuery::create()->findOneById($user_id);
-
-  if (!$active_user->isAdmin()) {
-    Helpers::error(Constants::UNAUTHORIZED, "You have not administrative access.", $app);
-  }
-}
-
-function json(Route $route)
-{
-  $app = Slim::getInstance();
-  Helpers::checkForJsonRequest($app);
-}
-
-$app->get('/', function () use ($app) {
+$app->get('/', function (Request $req, Response $resp, $args = []) use ($app) {
 
   $response = [
     'application' => 'Quote Backend',
     'version' => 1.0
   ];
 
-  $app->response()->setBody(json_encode($response));
+  return $resp->withJson($response);
 });
 
-$app->get('/quote/:id', 'authenticate', function ($id) use ($app) {
+$app->get('/quote/{id}', function (Request $req, Response $resp, $args = []) {
   $quoteQuery = new QuoteQuery();
-  $quote = $quoteQuery->findPk($id);
+  $quote = $quoteQuery->findPk($args["id"]);
 
   if ($quote == null) {
-    Helpers::error(Constants::NOT_FOUND, "Quote does not exist yes!", $app);
+    $resp->withStatus(Constants::NOT_FOUND);
+    return $resp->withJson(new Error(false,Constants::NOT_FOUND, "Quote does not exist yes!"));
+  } else {
+    return $resp->withJson($quote->toArray(TableMap::TYPE_FIELDNAME));
   }
 
-  $app->response()->setBody(json_encode($quote->toArray(TableMap::TYPE_FIELDNAME)));
-});
+})->add(Authenticated::class);
 
-$app->get('/quote', 'authenticate', function () use ($app){
+$app->get('/quote', function (Request $req, Response $resp, $args = []){
   $quotes = QuoteQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
-  $app->response()->setBody(json_encode($quotes));
-});
+  $resp->withJson($quotes);
+})->add(Authenticated::class);
 
-$app->post('/quote', 'authenticate', 'json', function () use ($app) {
-  $request = $app->request();
-  $body = json_decode($request->getBody());
+$app->post('/quote', function (Request $req, Response $resp, $args = []) {
+
+  $body = json_decode($req->getBody());
 
   $quote_body = $body->{'quote'};
   $title = $body->{'title'};
 
   if (Helpers::isNullOrEmpty($title) || Helpers::isNullOrEmpty($quote_body)) {
-    Helpers::error(Constants::INVALID_PARAMETERS, "Invalid data", $app);
+    $resp->withStatus(Constants::INVALID_PARAMETERS);
+    return $resp->withJson(new Error(false, Constants::INVALID_PARAMETERS, "Invalid data"));
   }
 
   date_default_timezone_set("UTC");
@@ -112,11 +92,10 @@ $app->post('/quote', 'authenticate', 'json', function () use ($app) {
     "code" => Constants::SUCCESS
   ];
 
-  $app->response()->setBody(json_encode($result));
+  return $resp->withJson($result);
+})->add(ValidJson::class)->add(Authenticated::class);
 
-});
-
-$app->post("/register", 'json', function () use ($app) {
+$app->post("/register", function (Request $req, Response $resp, $args = []) use ($app) {
   $request = $app->request;
 
   $mail = StateManager::getInstance()->getMail();
@@ -124,22 +103,26 @@ $app->post("/register", 'json', function () use ($app) {
   $body = json_decode($request->getBody());
 
   if ($body == null) {
-    Helpers::error(Constants::INVALID_PARAMETERS, "Bad Request", $app);
+    $resp->withStatus(Constants::INVALID_PARAMETERS);
+    return $resp->withJson(new Error(false, Constants::INVALID_PARAMETERS, "Bad Request"));
   }
 
   $username = property_exists($body, 'username') ? $body->{"username"} : null;
   $password = property_exists($body, 'password') ? $body->{"password"} : null;
 
   if (Helpers::isNullOrEmpty($username) || Helpers::isNullOrEmpty($password)) {
-    Helpers::error(Constants::INVALID_PARAMETERS, "Password / Username can't be empty", $app);
+    $resp->withStatus(Constants::INVALID_PARAMETERS);
+    return $resp->withJson(new Error(false, Constants::INVALID_PARAMETERS, "Password / Username can't be empty"));
   }
 
   if (!filter_var($username, FILTER_VALIDATE_EMAIL)) {
-    Helpers::error(Constants::INVALID_PARAMETERS, "Username must be a valid e-mail", $app);
+    $resp->withStatus(Constants::INVALID_PARAMETERS);
+    return $resp->withJson(new Error(false, Constants::INVALID_PARAMETERS, "Username must be a valid e-mail"));
   }
 
   if (strlen($password) < PASS_LENGTH) {
-    Helpers::error(Constants::INVALID_PARAMETERS, "Password must be at least " . PASS_LENGTH . " characters long", $app);
+    $resp->withStatus(Constants::INVALID_PARAMETERS);
+    return $resp->withJson(new Error(false, Constants::INVALID_PARAMETERS, "Password must be at least " . PASS_LENGTH . " characters long"));
   }
 
   $password_hash = password_hash($password, PASSWORD_DEFAULT);
@@ -147,7 +130,8 @@ $app->post("/register", 'json', function () use ($app) {
   $user = UserQuery::create()->findByUsername($username)->getFirst();
 
   if ($user != null) {
-    Helpers::error(Constants::CONFLICT, "User already exists", $app);
+    $resp->withStatus(Constants::CONFLICT);
+    return $resp->withJson(new Error(false, Constants::CONFLICT, "User already exists"));
   }
 
   $user = new User();
@@ -171,13 +155,13 @@ $app->post("/register", 'json', function () use ($app) {
     "code" => Constants::SUCCESS
   ];
 
-  $app->response()->setBody(json_encode($result));
+  return $resp->withJson($result);
 
-});
+})->add(ValidJson::class);
 
-$app->get("/confirm/:code", function ($code) use ($app) {
+$app->get("/confirm/{code}", function (Request $req, Response $resp, $args = []) {
   $confirmationQuery = ConfirmationQuery::create();
-  $confirm = $confirmationQuery->findOneByCode($code);
+  $confirm = $confirmationQuery->findOneByCode($args['code']);
 
   $result_code = Constants::NOT_FOUND;
 
@@ -197,36 +181,40 @@ $app->get("/confirm/:code", function ($code) use ($app) {
     "code" => $result_code
   ];
 
-  $app->response()->setBody(json_encode($result));
+  $resp->withJson($result);
 });
 
-$app->post("/login", 'json', function () use ($app) {
-  $request = $app->request();
-  $body = json_decode($request->getBody());
+$app->post("/login", function (Request $req, Response $resp, $args = []) {
+  $body = json_decode($req->getBody());
 
   if ($body == null) {
-    Helpers::error(Constants::INVALID_PARAMETERS, "Bad request", $app);
+    $error = new Error(false, Constants::INVALID_PARAMETERS, "Bad request");
+    return $resp->withJson($error, $error->getCode());
   }
 
   $username = property_exists($body, 'username') ? $body->{"username"} : null;
   $password = property_exists($body, 'password') ? $body->{"password"} : null;
 
   if (Helpers::isNullOrEmpty($username) || Helpers::isNullOrEmpty($password)) {
-    Helpers::error(Constants::INVALID_PARAMETERS, "Password / Username can't be empty", $app);
+    $error = new Error(false, Constants::INVALID_PARAMETERS, "Password / Username can't be empty");
+    return $resp->withJson($error, $error->getCode());
   }
 
   $user = UserQuery::create()->findByUsername($username)->getFirst();
 
   if ($user == null) {
-    Helpers::error(Constants::INVALID_PARAMETERS, "Invalid username or password", $app);
+    $error = new Error(false, Constants::INVALID_PARAMETERS, "Invalid username or password");
+    return $resp->withJson($error, $error->getCode());
   }
 
   if (!$user->isApproved()) {
-    Helpers::error(Constants::INVALID_PARAMETERS, "User has not yet been approved by a system administrator", $app);
+    $error = new Error(false, Constants::INVALID_PARAMETERS, "User has not yet been approved by a system administrator");
+    return $resp->withJson($error, $error->getCode());
   }
 
   if (!password_verify($password, $user->getPassword())) {
-    Helpers::error(Constants::INVALID_PARAMETERS, "Invalid username or password", $app);
+    $error = new Error(false, Constants::INVALID_PARAMETERS, "Invalid username or password");
+    return $resp->withJson($error, $error->getCode());
   }
 
   $token = array(
@@ -244,12 +232,13 @@ $app->post("/login", 'json', function () use ($app) {
     "code" => Constants::SUCCESS
   ];
 
-  $app->response()->setBody(json_encode($result));
-});
+  return $resp->withJson($result);
 
-$app->group('/admin', function () use ($app) {
+})->add(ValidJson::class);
 
-  $app->get('/users', 'authenticate', 'authorize', function () use ($app) {
+$app->group('/admin', function () {
+
+  $this->get('/users', function (Request $req, Response $resp, $args = []) {
 
     $users = UserQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
 
@@ -257,49 +246,42 @@ $app->group('/admin', function () use ($app) {
       unset($user['password']);
     }
 
-    $app->response()->setBody(json_encode($users));
-  });
+    return $resp->withJson($users);
+  })->add(Authenticated::class)->add(Authorized::class);
 
-  $app->post('/users', 'authenticate', 'authorize', 'json', function () use ($app) {
-    $body = json_decode($app->request()->getBody());
+  $this->post('/users', function (Request $req, Response $resp, $args = []) {
+    $body = json_decode($req->getBody());
 
     $user_id = $body->{'id'};
-    $approved = boolval($app->request()->post('approved'));
+    $approved = boolval($req->getParam('approved'));
 
     if (!is_int($user_id) || $user_id <= 0 || !is_bool($approved)) {
-      Helpers::error(Constants::INVALID_PARAMETERS, "Missing or invalid parameters", $app);
+      $error = new Error(false, Constants::INVALID_PARAMETERS, "Missing or invalid parameters");
+      return $resp->withJson($error, $error->getCode());
     }
 
     $user = UserQuery::create()->findOneById($user_id);
 
     if ($user == null) {
-      Helpers::error(Constants::NOT_FOUND, "Invalid user", $app);
+      $error = new Error(false, Constants::NOT_FOUND, "Invalid user");
+      return $resp->withJson($error, $error->getCode());
     }
 
     $user->setApproved($approved);
     $rowsAffected = $user->save();
 
-    $app->response()->setBody(json_encode([
+    return $resp->withJson([
       'success' => $rowsAffected > 0,
-      'code' => Constants::SUCCESS
-    ]));
-  });
+      'code'    => Constants::SUCCESS
+    ]);
+  })->add(ValidJson::class)->add(Authenticated::class)->add(Authorized::class);;
 });
 
-$app->notFound(function () use ($app) {
-  Helpers::error(Constants::NOT_FOUND, "Invalid Path", $app);
-});
+$app->group("/password", function() {
 
-$app->error(function (Exception $e) use ($app) {
-  Helpers::error(Constants::SERVER_ERROR, "Internal server error", $app);
-});
+  $this->post('/recovery', function (Request $req, Response $resp, $args = []) {
 
-$app->group("/password", function() use ($app)  {
-
-  $app->post('/forgot', 'json', function () use ($app) {
-    $app = Slim::getInstance();
-
-    $body = json_decode($app->request()->getBody());
+    $body = json_decode($req->getBody());
 
     $email = $body->{'username'};
 
@@ -316,65 +298,90 @@ $app->group("/password", function() use ($app)  {
     $stateManager = StateManager::getInstance();
     $jwt = JWT::encode($token, $stateManager->getSecret());
 
-    $app->response()->setBody(json_encode([
+    return $resp->withJson([
       'success' => true,
       'token' => $jwt,
       'code' => Constants::SUCCESS
-    ]));
-  });
+    ]);
+  })->add(ValidJson::class);
 
-  $app->post('/change', 'json', function () use ($app) {
+  $this->post('/change', function (Request $req, Response $resp, $args = []) {
     $stateManager = StateManager::getInstance();
-    $body = json_decode($app->request()->getBody());
+    $body = json_decode($req->getBody());
 
     if (property_exists($body, 'recovery')) {
       if (!property_exists($body, 'token')) {
-        Helpers::error(Constants::INVALID_PARAMETERS, "Missing recovery token", $app);
+        $error = new Error(false, Constants::INVALID_PARAMETERS, "Missing recovery token");
+        return $resp->withJson($error, $error->getCode());
       }
 
       $recoveryToken = $body->{'token'};
 
       if (empty($recoveryToken)) {
-        Helpers::error(Constants::UNAUTHORIZED, "Not authorized", $app);
+        $error = new Error(false, Constants::UNAUTHORIZED, "Not authorized");
+        return $resp->withJson($error, $error->getCode());
       }
 
-      $validatedToken = Helpers::validateRecoveryToken($recoveryToken, $stateManager->getSecret(), $app);
+      $result = Helpers::validateRecoveryToken($recoveryToken, $stateManager->getSecret());
 
-      if ($validatedToken == null) {
-        Helpers::error(Constants::UNAUTHORIZED, "Invalid Token", $app);
+      if ($result instanceof Error || $result == null) {
+        $error = new Error(false, Constants::UNAUTHORIZED, "Invalid Token");
+        return $resp->withJson($error, $error->getCode());
       }
 
-      Helpers::changePassword($body, $app, $validatedToken);
-
+      $operationResult = Helpers::changePassword($body, $result);
+      return $resp->withJson($operationResult, $operationResult->getCode());
     } else {
       $secret = $stateManager->getSecret();
-      $token = Helpers::getUserToken($app);
-      $validToken = Helpers::validateToken($token, $secret, $app);
-      Helpers::changePassword($body, $app, $validToken);
+      $token = Helpers::getUserToken($req);
+      $result = Helpers::validateToken($token, $secret);
+      $operationResult = Helpers::changePassword($body, $result);
+      return $resp->withJson($operationResult, $operationResult->getCode());
     }
-  });
+  })->add(ValidJson::class);
 
 });
 
-$response = $app->response();
 
-$response->headers()->set("Content-Type", "application/json");
+$cont = $app->getContainer();
+$cont['notFoundHandler'] = function ($c) {
+  return function (Request $request, Response $response) use ($c) {
+    $error = new Error(false, Constants::NOT_FOUND, "Invalid Path");
+    return $c['response']->withJson($error, $error->code);
+  };
+};
+
+$cont['errorHandler'] = function ($c) {
+  return function ($request, $response, $exception) use ($c) {
+    $error = new Error(false, Constants::SERVER_ERROR, "Internal server error");
+    return $c['response']->withJson($error, $error->getCode());
+  };
+};
 
 $development = StateManager::getInstance()->isDevelopment();
 
+$app->add(function (Request $request, Response $response, $next) {
+  $response->withHeader("Content-Type", "application/json");
+  return $next($request, $response);
+});
+
 if ($development) {
-  $response->headers()->set("Access-Control-Allow-Origin", '*');
-  $response->headers()->set("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");
-  $response->headers()->set("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, X-Requested-With");
+
+  $app->add(function (Request $request, Response $response, $next) {
+    $response->withHeader("Access-Control-Allow-Origin", '*');
+    $response->withHeader("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");
+    $response->withHeader("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, X-Requested-With");
+
+    return $next($request, $response);
+  });
 }
 
 if ($development) {
-  $app->options("/(:name+)", function () use ($app) {
-    $response = $app->response();
-    $response->headers()->set("Access-Control-Allow-Origin", '*');
-    $response->headers()->set("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");
-    $response->headers()->set("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, X-Requested-With");
-    $response->setBody("");
+  $app->options("/(:name+)", function (Request $request, Response $response, $next) {
+    $response->withHeader("Access-Control-Allow-Origin", '*');
+    $response->withHeader("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");
+    $response->withHeader("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, X-Requested-With");
+    return $next($request, $response);
   });
 }
 

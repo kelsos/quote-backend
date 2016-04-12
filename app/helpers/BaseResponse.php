@@ -1,25 +1,19 @@
 <?php
-namespace QuoteEnd;
+/**
+ * Created by PhpStorm.
+ * User: kelsos
+ * Date: 4/13/16
+ * Time: 12:53 AM
+ */
+
+namespace helpers;
 
 
-class Error
+class BaseResponse
 {
-  public $success = false;
-  public $code = 404;
-  public $description = "Not found";
-
-  /**
-   * Error constructor.
-   * @param bool $success
-   * @param int $code
-   * @param string $description
-   */
-  public function __construct($success, $code, $description)
-  {
-    $this->success = $success;
-    $this->code = $code;
-    $this->description = $description;
-  }
+  private $success = false;
+  private $code = 0;
+  private $description = "";
 
   /**
    * @return boolean
