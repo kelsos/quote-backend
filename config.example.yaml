@@ -1,0 +1,9 @@
+secret: #used for the jwt
+mail: # the e-mail address used by the service
+admin_mail: # the e-mail address of the administrator (this will receive notification about users
+domain: # the domain of the service
+environment: development #or production
+smtp_username: # the username of the smtp account used to send the service's mails/
+smtp_password: # the account password used.
+smtp_server: # the hostname of the smtp server used for the e-mails.
+smtp_port: 465 # the port used.
