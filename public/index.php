@@ -63,8 +63,25 @@ $app->get('/quote/{id}', function (Request $req, Response $resp, $args = []) {
 })->add(Authenticated::class);
 
 $app->get('/quote', function (Request $req, Response $resp, $args = []){
-  $quotes = QuoteQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
-  $resp->withJson($quotes);
+  $limit = $req->getParam("limit");
+  $offset = $req->getParam("offset");
+  
+  if (is_numeric($offset) && is_numeric($limit)) {
+    $quoteQuery = QuoteQuery::create()->limit($limit)->offset($offset)->orderById();
+    $quotes = $quoteQuery->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
+
+    return $resp->withJson([
+      'data'    => $quotes,
+      'limit'   => $limit,
+      'offset'  => $offset,
+      'total'   => QuoteQuery::create()->count()
+    ]);
+  } else {
+    $quotes = QuoteQuery::create()->orderById()->find()->toArray(null, false, TableMap::TYPE_FIELDNAME, true);
+
+    return $resp->withJson(['data' => $quotes]);
+  }
+
 })->add(Authenticated::class);
 
 $app->post('/quote', function (Request $req, Response $resp, $args = []) {
@@ -145,7 +162,7 @@ $app->post("/register", function (Request $req, Response $resp, $args = []) {
   $confirmationCode = md5(uniqid(rand(), true));
   $confirmation->setCode($confirmationCode);
   $confirmation->save();
-  
+
   QuoteMailer::getInstance()->sendMail($confirmationCode, $username);
 
   $result = [
