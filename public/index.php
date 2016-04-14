@@ -96,12 +96,9 @@ $app->post('/quote', function (Request $req, Response $resp, $args = []) {
   return $resp->withJson($result);
 })->add(ValidJson::class)->add(Authenticated::class);
 
-$app->post("/register", function (Request $req, Response $resp, $args = []) use ($app) {
-  $request = $app->request;
-
-  $mail = StateManager::getInstance()->getMail();
-
-  $body = json_decode($request->getBody());
+$app->post("/register", function (Request $req, Response $resp, $args = []) {
+  
+  $body = json_decode($req->getBody());
 
   if ($body == null) {
     $resp->withStatus(Constants::INVALID_PARAMETERS);
@@ -148,8 +145,8 @@ $app->post("/register", function (Request $req, Response $resp, $args = []) use 
   $confirmationCode = md5(uniqid(rand(), true));
   $confirmation->setCode($confirmationCode);
   $confirmation->save();
-
-  QuoteMailer::getInstance()->sendConfirmation($username, $_SERVER['SERVER_NAME']."/confirm/".$confirmationCode, $mail);
+  
+  QuoteMailer::getInstance()->sendMail($confirmationCode, $username);
 
   $result = [
     "success" => $rowsAffected > 0,

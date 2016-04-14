@@ -68,9 +68,9 @@ class QuoteMailer
   }
 
   /**
-   * @param $mail
-   * @param $username
-   * @param $sender
+   * @param $mail String The recipient of the e-mail message (the address of the service admin)
+   * @param $username String The username of the new user logged
+   * @param $sender String The service e-mail address
    * @return bool
    * @throws \phpmailerException
    */
@@ -115,6 +115,23 @@ class QuoteMailer
     $client->addTaskBackground("notifyAdmin", json_encode($arguments));
     $client->runTasks();
   }
+
+  /**
+   * @param $confirmationCode
+   * @param $username
+   */
+  function sendMail($confirmationCode, $username)
+  {
+    $serviceProtocol = $_SERVER['SERVER_PORT'] == 443 ? "https://" : "http://";
+    $serviceUrl = $serviceProtocol . $_SERVER['SERVER_NAME'] . "/confirm/" . $confirmationCode;
+
+    $adminMail = StateManager::getInstance()->getAdminMail();
+    $serviceMail = StateManager::getInstance()->getMail();
+    
+    $this->sendConfirmation($username, $serviceUrl, $serviceMail);
+    $this->notifyAdmin($adminMail, $username, $serviceMail);
+  }
+
 
   /**
    * Private clone method to prevent cloning of the instance of the

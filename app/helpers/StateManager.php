@@ -18,6 +18,7 @@ class StateManager
   private $smtpHostname;
   private $smtpPort;
   private $domain;
+  private $adminMail;
 
   /**
    * Protected constructor to prevent creating a new instance of the
@@ -34,6 +35,7 @@ class StateManager
     $this->smtpUsername = $config['smtp_username'];
     $this->smtpPassword = $config['smtp_password'];
     $this->domain = $config['domain'];
+    $this->adminMail = $config['admin_mail'];
 
   }
 
@@ -133,8 +135,25 @@ class StateManager
     return $this->smtpPort;
   }
 
-  public function getDomain() {
+  public function getDomain()
+  {
     return $this->domain;
+  }
+
+  /**
+   * @return mixed
+   */
+  public function getAdminMail()
+  {
+    return $this->adminMail;
+  }
+
+  /**
+   * @param mixed $adminMail
+   */
+  public function setAdminMail($adminMail)
+  {
+    $this->adminMail = $adminMail;
   }
 
   /**
