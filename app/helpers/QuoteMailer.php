@@ -62,7 +62,7 @@ class QuoteMailer
     $body = str_replace('%confirmation_link%', $url, $body);
     $this->mail->msgHTML($body);
     $this->mail->setFrom($sender, "Quote");
-    $this->mail->Subject = "Confirm Address On Quote";
+    $this->mail->Subject = "Confirm your account on Quote";
     $this->mail->AltBody =strip_tags($body);
     return $this->mail->send();
   }
@@ -81,14 +81,25 @@ class QuoteMailer
     $body = str_replace('%login_username%', $username, $body);
     $this->mail->msgHTML($body);
     $this->mail->setFrom($sender, "Quote");
-    $this->mail->Subject = "New quote user";
+    $this->mail->Subject = "User awaiting approval";
     $this->mail->AltBody =strip_tags($body);
 
     return $this->mail->send();
   }
 
-
-  public function sendConfirmation($address, $url, $sender) {
+  public function sendPasswordMail($serviceMail, $username, $temporaryUrl) {
+    $this->mail->addAddress($username);
+    $this->mail->isHTML(true);
+    $body = file_get_contents("../app/templates/password_recovery.html");
+    $body = str_replace('%password_reset%', $temporaryUrl, $body);
+    $this->mail->msgHTML($body);
+    $this->mail->setFrom($serviceMail, "Quote");
+    $this->mail->Subject = "Quote Password Reset";
+    $this->mail->AltBody =strip_tags($body);
+    return $this->mail->send();
+  }
+  
+  public function scheduleConfirmation($address, $url, $sender) {
     $client = new GearmanClient();
     $client->addServer();
 
@@ -102,7 +113,7 @@ class QuoteMailer
     $client->runTasks();
   }
 
-  public function notifyAdmin($mail, $username, $sender) {
+  public function scheduleNotification($mail, $username, $sender) {
     $client = new GearmanClient();
     $client->addServer();
 
@@ -127,9 +138,32 @@ class QuoteMailer
 
     $adminMail = StateManager::getInstance()->getAdminMail();
     $serviceMail = StateManager::getInstance()->getMail();
-    
-    $this->sendConfirmation($username, $serviceUrl, $serviceMail);
-    $this->notifyAdmin($adminMail, $username, $serviceMail);
+
+    $this->scheduleConfirmation($username, $serviceUrl, $serviceMail);
+    $this->scheduleNotification($adminMail, $username, $serviceMail);
+  }
+
+  /**
+   * @param $jwt String A temporary token that will be user to reset the password
+   * @param $email String The e-mail of the user
+   */
+  public function schedulePasswordResetMail($jwt, $email)
+  {
+
+    $client = new GearmanClient();
+    $client->addServer();
+
+    $serviceProtocol = $_SERVER['SERVER_PORT'] == 443 ? "https://" : "http://";
+    $serviceUrl = $serviceProtocol . $_SERVER['SERVER_NAME'] . "/password/reset/" . $jwt;
+
+    $arguments = [
+      'username' => $email,
+      'temporary_url' => $serviceUrl,
+      'sender' =>  StateManager::getInstance()->getMail()
+    ];
+
+    $client->addTaskBackground("sendPasswordReset", json_encode($arguments));
+    $client->runTasks();
   }
 
 

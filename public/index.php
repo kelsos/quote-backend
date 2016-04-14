@@ -300,7 +300,18 @@ $app->group("/password", function() {
 
     $email = $body->{'username'};
 
+    if (!$email) {
+      $error = new Error(false, Constants::INVALID_PARAMETERS, "invalid parameters");
+      return $resp->withJson($error, $error->code);
+    }
+
     $user = UserQuery::create()->findByUsername($email)->getFirst();
+
+    if (!$user) {
+      # Todo fix the response to something generic (ok) but add a log for debug
+      $error = new Error(false, Constants::INVALID_PARAMETERS, "invalid parameters");
+      return $resp->withJson($error, $error->code);
+    }
 
     $token = array(
       "iat" => time(),
@@ -312,10 +323,11 @@ $app->group("/password", function() {
 
     $stateManager = StateManager::getInstance();
     $jwt = JWT::encode($token, $stateManager->getSecret());
-
+    
+    QuoteMailer::getInstance()->schedulePasswordResetMail($jwt, $email);
+      
     return $resp->withJson([
       'success' => true,
-      'token' => $jwt,
       'code' => Constants::SUCCESS
     ]);
   })->add(ValidJson::class);
