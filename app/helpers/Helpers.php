@@ -57,20 +57,21 @@ class Helpers
   {
     $error = null;
     if ($token == null) {
-      $error = new Error(false, Constants::INVALID_PARAMETERS, "Missing token");
+      $error = new Error(false, Constants::UNAUTHORIZED, "User is not authenticated to use the api");
+    } else {
+      try {
+        $decode = JWT::decode($token, $secret, array('HS256'));
+        //Check if it is a recovery token and throw 403
+        return $decode;
+      } catch (SignatureInvalidException $ex) {
+        $error = new Error(false, Constants::UNAUTHORIZED, "Invalid token");
+      } catch (ExpiredException $ex) {
+        $error = new Error(false, Constants::UNAUTHORIZED, "Expired token");
+      } catch (UnexpectedValueException $ex) {
+        $error = new Error(false, Constants::UNAUTHORIZED, "Something wrong will trying to decode the token");
+      }
     }
-    try {
-      $decode = JWT::decode($token, $secret, array('HS256'));
-      //Check if it is a recovery token and throw 403
-      return $decode;
-    } catch (SignatureInvalidException $ex) {
-      $error = new Error(false, Constants::UNAUTHORIZED, "Invalid token");
-    } catch (ExpiredException $ex) {
-      $error = new Error(false, Constants::UNAUTHORIZED, "Expired token");
-    } catch (UnexpectedValueException $ex) {
-      $error = new Error(false, Constants::UNAUTHORIZED, "Something wrong will trying to decode the token");
-    }
-    
+
     return $error;
   }
 
