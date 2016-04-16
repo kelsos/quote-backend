@@ -332,32 +332,39 @@ $app->group("/password", function() {
     ]);
   })->add(ValidJson::class);
 
+  $this->post('/reset', function (Request $request, Response $response, $args = []){
+    $state = StateManager::getInstance();
+    $body = json_decode($request->getBody());
+    if(!property_exists($body, 'recovery')) {
+      $error = new Error(false, Constants::INVALID_PARAMETERS, "Missing recovery token");
+      return $response->withJson($error, $error->getCode());
+    }
+
+    $recoveryToken = $body->{'token'};
+
+    if (empty($recoveryToken)) {
+      $error = new Error(false, Constants::UNAUTHORIZED, "Not authorized");
+      return $response->withJson($error, $error->getCode());
+    }
+
+    $result = Helpers::validateRecoveryToken($recoveryToken, $state->getSecret());
+
+    if ($result instanceof Error || $result == null) {
+      $error = new Error(false, Constants::UNAUTHORIZED, "Invalid Token");
+      return $response->withJson($error, $error->getCode());
+    }
+
+    $operationResult = Helpers::changePassword($body, $result);
+    return $response->withJson($operationResult, $operationResult->getCode());
+  });
+
   $this->post('/change', function (Request $req, Response $resp, $args = []) {
     $stateManager = StateManager::getInstance();
     $body = json_decode($req->getBody());
 
     if (property_exists($body, 'recovery')) {
-      if (!property_exists($body, 'token')) {
-        $error = new Error(false, Constants::INVALID_PARAMETERS, "Missing recovery token");
-        return $resp->withJson($error, $error->getCode());
-      }
-
-      $recoveryToken = $body->{'token'};
-
-      if (empty($recoveryToken)) {
-        $error = new Error(false, Constants::UNAUTHORIZED, "Not authorized");
-        return $resp->withJson($error, $error->getCode());
-      }
-
-      $result = Helpers::validateRecoveryToken($recoveryToken, $stateManager->getSecret());
-
-      if ($result instanceof Error || $result == null) {
-        $error = new Error(false, Constants::UNAUTHORIZED, "Invalid Token");
-        return $resp->withJson($error, $error->getCode());
-      }
-
-      $operationResult = Helpers::changePassword($body, $result);
-      return $resp->withJson($operationResult, $operationResult->getCode());
+      $error = new Error(false, Constants::INVALID_PARAMETERS, "Invalid Token");
+      return $resp->withJson($error, $error->getCode());
     } else {
       $secret = $stateManager->getSecret();
       $token = Helpers::getUserToken($req);
