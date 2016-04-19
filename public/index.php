@@ -396,27 +396,21 @@ $cont['errorHandler'] = function ($c) use ($development) {
 };
 
 $app->add(function (Request $request, Response $response, $next) {
-  $response->withHeader("Content-Type", "application/json");
-  return $next($request, $response);
+  $resp = $response->withHeader("Content-Type", "application/json");
+  return $next($request, $resp);
 });
 
 if ($development) {
 
   $app->add(function (Request $request, Response $response, $next) {
-    $response->withHeader("Access-Control-Allow-Origin", '*');
-    $response->withHeader("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");
-    $response->withHeader("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, X-Requested-With");
+    $resp = $response->withHeader("Access-Control-Allow-Origin", '*')
+      ->withHeader("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS")
+      ->withHeader("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, X-Requested-With");
+    if (!$request->isOptions()) {
+      $resp = $next($request, $resp);
+    }
 
-    return $next($request, $response);
-  });
-}
-
-if ($development) {
-  $app->options("/(:name+)", function (Request $request, Response $response, $next) {
-    $response->withHeader("Access-Control-Allow-Origin", '*');
-    $response->withHeader("Access-Control-Allow-Methods", "PUT, GET, POST, DELETE, OPTIONS");
-    $response->withHeader("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, X-Requested-With");
-    return $next($request, $response);
+    return $resp;
   });
 }
 
