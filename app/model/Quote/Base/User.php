@@ -20,6 +20,7 @@ use Quote\Confirmation as ChildConfirmation;
 use Quote\ConfirmationQuery as ChildConfirmationQuery;
 use Quote\User as ChildUser;
 use Quote\UserQuery as ChildUserQuery;
+use Quote\Map\ConfirmationTableMap;
 use Quote\Map\UserTableMap;
 
 /**
@@ -65,36 +66,49 @@ abstract class User implements ActiveRecordInterface
 
     /**
      * The value for the id field.
+     *
      * @var        int
      */
     protected $id;
 
     /**
      * The value for the username field.
+     *
      * @var        string
      */
     protected $username;
 
     /**
      * The value for the password field.
+     *
      * @var        string
      */
     protected $password;
 
     /**
+     * The value for the oauth_user_id field.
+     *
+     * @var        string
+     */
+    protected $oauth_user_id;
+
+    /**
      * The value for the approved field.
+     *
      * @var        boolean
      */
     protected $approved;
 
     /**
      * The value for the confirmed field.
+     *
      * @var        boolean
      */
     protected $confirmed;
 
     /**
      * The value for the admin field.
+     *
      * @var        boolean
      */
     protected $admin;
@@ -333,7 +347,15 @@ abstract class User implements ActiveRecordInterface
     {
         $this->clearAllReferences();
 
-        return array_keys(get_object_vars($this));
+        $cls = new \ReflectionClass($this);
+        $propertyNames = [];
+        $serializableProperties = array_diff($cls->getProperties(), $cls->getProperties(\ReflectionProperty::IS_STATIC));
+
+        foreach($serializableProperties as $property) {
+            $propertyNames[] = $property->getName();
+        }
+
+        return $propertyNames;
     }
 
     /**
@@ -364,6 +386,16 @@ abstract class User implements ActiveRecordInterface
     public function getPassword()
     {
         return $this->password;
+    }
+
+    /**
+     * Get the [oauth_user_id] column value.
+     *
+     * @return string
+     */
+    public function getOauthUserId()
+    {
+        return $this->oauth_user_id;
     }
 
     /**
@@ -485,6 +517,26 @@ abstract class User implements ActiveRecordInterface
 
         return $this;
     } // setPassword()
+
+    /**
+     * Set the value of [oauth_user_id] column.
+     *
+     * @param string $v new value
+     * @return $this|\Quote\User The current object (for fluent API support)
+     */
+    public function setOauthUserId($v)
+    {
+        if ($v !== null) {
+            $v = (string) $v;
+        }
+
+        if ($this->oauth_user_id !== $v) {
+            $this->oauth_user_id = $v;
+            $this->modifiedColumns[UserTableMap::COL_OAUTH_USER_ID] = true;
+        }
+
+        return $this;
+    } // setOauthUserId()
 
     /**
      * Sets the value of the [approved] column.
@@ -615,13 +667,16 @@ abstract class User implements ActiveRecordInterface
             $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : UserTableMap::translateFieldName('Password', TableMap::TYPE_PHPNAME, $indexType)];
             $this->password = (null !== $col) ? (string) $col : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : UserTableMap::translateFieldName('Approved', TableMap::TYPE_PHPNAME, $indexType)];
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : UserTableMap::translateFieldName('OauthUserId', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->oauth_user_id = (null !== $col) ? (string) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 4 + $startcol : UserTableMap::translateFieldName('Approved', TableMap::TYPE_PHPNAME, $indexType)];
             $this->approved = (null !== $col) ? (boolean) $col : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 4 + $startcol : UserTableMap::translateFieldName('Confirmed', TableMap::TYPE_PHPNAME, $indexType)];
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 5 + $startcol : UserTableMap::translateFieldName('Confirmed', TableMap::TYPE_PHPNAME, $indexType)];
             $this->confirmed = (null !== $col) ? (boolean) $col : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 5 + $startcol : UserTableMap::translateFieldName('Admin', TableMap::TYPE_PHPNAME, $indexType)];
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 6 + $startcol : UserTableMap::translateFieldName('Admin', TableMap::TYPE_PHPNAME, $indexType)];
             $this->admin = (null !== $col) ? (boolean) $col : null;
             $this->resetModified();
 
@@ -631,7 +686,7 @@ abstract class User implements ActiveRecordInterface
                 $this->ensureConsistency();
             }
 
-            return $startcol + 6; // 6 = UserTableMap::NUM_HYDRATE_COLUMNS.
+            return $startcol + 7; // 7 = UserTableMap::NUM_HYDRATE_COLUMNS.
 
         } catch (Exception $e) {
             throw new PropelException(sprintf('Error populating %s object', '\\Quote\\User'), 0, $e);
@@ -752,8 +807,8 @@ abstract class User implements ActiveRecordInterface
         }
 
         return $con->transaction(function () use ($con) {
-            $isInsert = $this->isNew();
             $ret = $this->preSave($con);
+            $isInsert = $this->isNew();
             if ($isInsert) {
                 $ret = $ret && $this->preInsert($con);
             } else {
@@ -857,6 +912,9 @@ abstract class User implements ActiveRecordInterface
         if ($this->isColumnModified(UserTableMap::COL_PASSWORD)) {
             $modifiedColumns[':p' . $index++]  = 'password';
         }
+        if ($this->isColumnModified(UserTableMap::COL_OAUTH_USER_ID)) {
+            $modifiedColumns[':p' . $index++]  = 'oauth_user_id';
+        }
         if ($this->isColumnModified(UserTableMap::COL_APPROVED)) {
             $modifiedColumns[':p' . $index++]  = 'approved';
         }
@@ -885,6 +943,9 @@ abstract class User implements ActiveRecordInterface
                         break;
                     case 'password':
                         $stmt->bindValue($identifier, $this->password, PDO::PARAM_STR);
+                        break;
+                    case 'oauth_user_id':
+                        $stmt->bindValue($identifier, $this->oauth_user_id, PDO::PARAM_STR);
                         break;
                     case 'approved':
                         $stmt->bindValue($identifier, (int) $this->approved, PDO::PARAM_INT);
@@ -967,12 +1028,15 @@ abstract class User implements ActiveRecordInterface
                 return $this->getPassword();
                 break;
             case 3:
-                return $this->getApproved();
+                return $this->getOauthUserId();
                 break;
             case 4:
-                return $this->getConfirmed();
+                return $this->getApproved();
                 break;
             case 5:
+                return $this->getConfirmed();
+                break;
+            case 6:
                 return $this->getAdmin();
                 break;
             default:
@@ -1008,9 +1072,10 @@ abstract class User implements ActiveRecordInterface
             $keys[0] => $this->getId(),
             $keys[1] => $this->getUsername(),
             $keys[2] => $this->getPassword(),
-            $keys[3] => $this->getApproved(),
-            $keys[4] => $this->getConfirmed(),
-            $keys[5] => $this->getAdmin(),
+            $keys[3] => $this->getOauthUserId(),
+            $keys[4] => $this->getApproved(),
+            $keys[5] => $this->getConfirmed(),
+            $keys[6] => $this->getAdmin(),
         );
         $virtualColumns = $this->virtualColumns;
         foreach ($virtualColumns as $key => $virtualColumn) {
@@ -1077,12 +1142,15 @@ abstract class User implements ActiveRecordInterface
                 $this->setPassword($value);
                 break;
             case 3:
-                $this->setApproved($value);
+                $this->setOauthUserId($value);
                 break;
             case 4:
-                $this->setConfirmed($value);
+                $this->setApproved($value);
                 break;
             case 5:
+                $this->setConfirmed($value);
+                break;
+            case 6:
                 $this->setAdmin($value);
                 break;
         } // switch()
@@ -1121,13 +1189,16 @@ abstract class User implements ActiveRecordInterface
             $this->setPassword($arr[$keys[2]]);
         }
         if (array_key_exists($keys[3], $arr)) {
-            $this->setApproved($arr[$keys[3]]);
+            $this->setOauthUserId($arr[$keys[3]]);
         }
         if (array_key_exists($keys[4], $arr)) {
-            $this->setConfirmed($arr[$keys[4]]);
+            $this->setApproved($arr[$keys[4]]);
         }
         if (array_key_exists($keys[5], $arr)) {
-            $this->setAdmin($arr[$keys[5]]);
+            $this->setConfirmed($arr[$keys[5]]);
+        }
+        if (array_key_exists($keys[6], $arr)) {
+            $this->setAdmin($arr[$keys[6]]);
         }
     }
 
@@ -1178,6 +1249,9 @@ abstract class User implements ActiveRecordInterface
         }
         if ($this->isColumnModified(UserTableMap::COL_PASSWORD)) {
             $criteria->add(UserTableMap::COL_PASSWORD, $this->password);
+        }
+        if ($this->isColumnModified(UserTableMap::COL_OAUTH_USER_ID)) {
+            $criteria->add(UserTableMap::COL_OAUTH_USER_ID, $this->oauth_user_id);
         }
         if ($this->isColumnModified(UserTableMap::COL_APPROVED)) {
             $criteria->add(UserTableMap::COL_APPROVED, $this->approved);
@@ -1276,6 +1350,7 @@ abstract class User implements ActiveRecordInterface
     {
         $copyObj->setUsername($this->getUsername());
         $copyObj->setPassword($this->getPassword());
+        $copyObj->setOauthUserId($this->getOauthUserId());
         $copyObj->setApproved($this->getApproved());
         $copyObj->setConfirmed($this->getConfirmed());
         $copyObj->setAdmin($this->getAdmin());
@@ -1376,7 +1451,10 @@ abstract class User implements ActiveRecordInterface
         if (null !== $this->collConfirmations && !$overrideExisting) {
             return;
         }
-        $this->collConfirmations = new ObjectCollection();
+
+        $collectionClassName = ConfirmationTableMap::getTableMap()->getCollectionClassName();
+
+        $this->collConfirmations = new $collectionClassName;
         $this->collConfirmations->setModel('\Quote\Confirmation');
     }
 
@@ -1521,6 +1599,10 @@ abstract class User implements ActiveRecordInterface
 
         if (!$this->collConfirmations->contains($l)) {
             $this->doAddConfirmation($l);
+
+            if ($this->confirmationsScheduledForDeletion and $this->confirmationsScheduledForDeletion->contains($l)) {
+                $this->confirmationsScheduledForDeletion->remove($this->confirmationsScheduledForDeletion->search($l));
+            }
         }
 
         return $this;
@@ -1565,6 +1647,7 @@ abstract class User implements ActiveRecordInterface
         $this->id = null;
         $this->username = null;
         $this->password = null;
+        $this->oauth_user_id = null;
         $this->approved = null;
         $this->confirmed = null;
         $this->admin = null;
@@ -1613,6 +1696,9 @@ abstract class User implements ActiveRecordInterface
      */
     public function preSave(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preSave')) {
+            return parent::preSave($con);
+        }
         return true;
     }
 
@@ -1622,7 +1708,9 @@ abstract class User implements ActiveRecordInterface
      */
     public function postSave(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postSave')) {
+            parent::postSave($con);
+        }
     }
 
     /**
@@ -1632,6 +1720,9 @@ abstract class User implements ActiveRecordInterface
      */
     public function preInsert(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preInsert')) {
+            return parent::preInsert($con);
+        }
         return true;
     }
 
@@ -1641,7 +1732,9 @@ abstract class User implements ActiveRecordInterface
      */
     public function postInsert(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postInsert')) {
+            parent::postInsert($con);
+        }
     }
 
     /**
@@ -1651,6 +1744,9 @@ abstract class User implements ActiveRecordInterface
      */
     public function preUpdate(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preUpdate')) {
+            return parent::preUpdate($con);
+        }
         return true;
     }
 
@@ -1660,7 +1756,9 @@ abstract class User implements ActiveRecordInterface
      */
     public function postUpdate(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postUpdate')) {
+            parent::postUpdate($con);
+        }
     }
 
     /**
@@ -1670,6 +1768,9 @@ abstract class User implements ActiveRecordInterface
      */
     public function preDelete(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preDelete')) {
+            return parent::preDelete($con);
+        }
         return true;
     }
 
@@ -1679,7 +1780,9 @@ abstract class User implements ActiveRecordInterface
      */
     public function postDelete(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postDelete')) {
+            parent::postDelete($con);
+        }
     }
 
 

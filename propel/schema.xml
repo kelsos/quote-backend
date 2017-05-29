@@ -22,7 +22,7 @@
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:noNamespaceSchemaLocation="http://xsd.propelorm.org/1.6/database.xsd"
           namespace="Quote"
-        >
+>
     <!-- Within the <database> tag, Propel expects one <table> tag for each table -->
 
 
@@ -63,6 +63,7 @@
         <column name="id" type="integer" required="true" primaryKey="true" autoIncrement="true"/>
         <column name="username" type="varchar" size="255" required="true"/>
         <column name="password" type="varchar" size="255" required="true"/>
+        <column name="oauth_user_id" type="varchar" size="255"/>
         <column name="approved" type="boolean"/>
         <column name="confirmed" type="boolean"/>
         <column name="admin" type="boolean"/>

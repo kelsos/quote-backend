@@ -34,9 +34,19 @@ use Quote\Map\QuoteTableMap;
  * @method     ChildQuoteQuery rightJoin($relation) Adds a RIGHT JOIN clause to the query
  * @method     ChildQuoteQuery innerJoin($relation) Adds a INNER JOIN clause to the query
  *
+ * @method     ChildQuoteQuery leftJoinWith($relation) Adds a LEFT JOIN clause and with to the query
+ * @method     ChildQuoteQuery rightJoinWith($relation) Adds a RIGHT JOIN clause and with to the query
+ * @method     ChildQuoteQuery innerJoinWith($relation) Adds a INNER JOIN clause and with to the query
+ *
  * @method     ChildQuoteQuery leftJoinQuoteTag($relationAlias = null) Adds a LEFT JOIN clause to the query using the QuoteTag relation
  * @method     ChildQuoteQuery rightJoinQuoteTag($relationAlias = null) Adds a RIGHT JOIN clause to the query using the QuoteTag relation
  * @method     ChildQuoteQuery innerJoinQuoteTag($relationAlias = null) Adds a INNER JOIN clause to the query using the QuoteTag relation
+ *
+ * @method     ChildQuoteQuery joinWithQuoteTag($joinType = Criteria::INNER_JOIN) Adds a join clause and with to the query using the QuoteTag relation
+ *
+ * @method     ChildQuoteQuery leftJoinWithQuoteTag() Adds a LEFT JOIN clause and with to the query using the QuoteTag relation
+ * @method     ChildQuoteQuery rightJoinWithQuoteTag() Adds a RIGHT JOIN clause and with to the query using the QuoteTag relation
+ * @method     ChildQuoteQuery innerJoinWithQuoteTag() Adds a INNER JOIN clause and with to the query using the QuoteTag relation
  *
  * @method     \Quote\QuoteTagQuery endUse() Finalizes a secondary criteria and merges it with its primary Criteria
  *
@@ -123,21 +133,27 @@ abstract class QuoteQuery extends ModelCriteria
         if ($key === null) {
             return null;
         }
-        if ((null !== ($obj = QuoteTableMap::getInstanceFromPool((string) $key))) && !$this->formatter) {
-            // the object is already in the instance pool
-            return $obj;
-        }
+
         if ($con === null) {
             $con = Propel::getServiceContainer()->getReadConnection(QuoteTableMap::DATABASE_NAME);
         }
+
         $this->basePreSelect($con);
-        if ($this->formatter || $this->modelAlias || $this->with || $this->select
-         || $this->selectColumns || $this->asColumns || $this->selectModifiers
-         || $this->map || $this->having || $this->joins) {
+
+        if (
+            $this->formatter || $this->modelAlias || $this->with || $this->select
+            || $this->selectColumns || $this->asColumns || $this->selectModifiers
+            || $this->map || $this->having || $this->joins
+        ) {
             return $this->findPkComplex($key, $con);
-        } else {
-            return $this->findPkSimple($key, $con);
         }
+
+        if ((null !== ($obj = QuoteTableMap::getInstanceFromPool(null === $key || is_scalar($key) || is_callable([$key, '__toString']) ? (string) $key : $key)))) {
+            // the object is already in the instance pool
+            return $obj;
+        }
+
+        return $this->findPkSimple($key, $con);
     }
 
     /**
@@ -167,7 +183,7 @@ abstract class QuoteQuery extends ModelCriteria
             /** @var ChildQuote $obj */
             $obj = new ChildQuote();
             $obj->hydrate($row);
-            QuoteTableMap::addInstanceToPool($obj, (string) $key);
+            QuoteTableMap::addInstanceToPool($obj, null === $key || is_scalar($key) || is_callable([$key, '__toString']) ? (string) $key : $key);
         }
         $stmt->closeCursor();
 

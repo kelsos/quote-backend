@@ -32,9 +32,19 @@ use Quote\Map\ConfirmationTableMap;
  * @method     ChildConfirmationQuery rightJoin($relation) Adds a RIGHT JOIN clause to the query
  * @method     ChildConfirmationQuery innerJoin($relation) Adds a INNER JOIN clause to the query
  *
+ * @method     ChildConfirmationQuery leftJoinWith($relation) Adds a LEFT JOIN clause and with to the query
+ * @method     ChildConfirmationQuery rightJoinWith($relation) Adds a RIGHT JOIN clause and with to the query
+ * @method     ChildConfirmationQuery innerJoinWith($relation) Adds a INNER JOIN clause and with to the query
+ *
  * @method     ChildConfirmationQuery leftJoinUser($relationAlias = null) Adds a LEFT JOIN clause to the query using the User relation
  * @method     ChildConfirmationQuery rightJoinUser($relationAlias = null) Adds a RIGHT JOIN clause to the query using the User relation
  * @method     ChildConfirmationQuery innerJoinUser($relationAlias = null) Adds a INNER JOIN clause to the query using the User relation
+ *
+ * @method     ChildConfirmationQuery joinWithUser($joinType = Criteria::INNER_JOIN) Adds a join clause and with to the query using the User relation
+ *
+ * @method     ChildConfirmationQuery leftJoinWithUser() Adds a LEFT JOIN clause and with to the query using the User relation
+ * @method     ChildConfirmationQuery rightJoinWithUser() Adds a RIGHT JOIN clause and with to the query using the User relation
+ * @method     ChildConfirmationQuery innerJoinWithUser() Adds a INNER JOIN clause and with to the query using the User relation
  *
  * @method     \Quote\UserQuery endUse() Finalizes a secondary criteria and merges it with its primary Criteria
  *
@@ -118,21 +128,27 @@ abstract class ConfirmationQuery extends ModelCriteria
         if ($key === null) {
             return null;
         }
-        if ((null !== ($obj = ConfirmationTableMap::getInstanceFromPool((string) $key))) && !$this->formatter) {
-            // the object is already in the instance pool
-            return $obj;
-        }
+
         if ($con === null) {
             $con = Propel::getServiceContainer()->getReadConnection(ConfirmationTableMap::DATABASE_NAME);
         }
+
         $this->basePreSelect($con);
-        if ($this->formatter || $this->modelAlias || $this->with || $this->select
-         || $this->selectColumns || $this->asColumns || $this->selectModifiers
-         || $this->map || $this->having || $this->joins) {
+
+        if (
+            $this->formatter || $this->modelAlias || $this->with || $this->select
+            || $this->selectColumns || $this->asColumns || $this->selectModifiers
+            || $this->map || $this->having || $this->joins
+        ) {
             return $this->findPkComplex($key, $con);
-        } else {
-            return $this->findPkSimple($key, $con);
         }
+
+        if ((null !== ($obj = ConfirmationTableMap::getInstanceFromPool(null === $key || is_scalar($key) || is_callable([$key, '__toString']) ? (string) $key : $key)))) {
+            // the object is already in the instance pool
+            return $obj;
+        }
+
+        return $this->findPkSimple($key, $con);
     }
 
     /**
@@ -162,7 +178,7 @@ abstract class ConfirmationQuery extends ModelCriteria
             /** @var ChildConfirmation $obj */
             $obj = new ChildConfirmation();
             $obj->hydrate($row);
-            ConfirmationTableMap::addInstanceToPool($obj, (string) $key);
+            ConfirmationTableMap::addInstanceToPool($obj, null === $key || is_scalar($key) || is_callable([$key, '__toString']) ? (string) $key : $key);
         }
         $stmt->closeCursor();
 

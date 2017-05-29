@@ -25,6 +25,7 @@ use Quote\QuoteTagQuery as ChildQuoteTagQuery;
 use Quote\Tag as ChildTag;
 use Quote\TagQuery as ChildTagQuery;
 use Quote\Map\QuoteTableMap;
+use Quote\Map\QuoteTagTableMap;
 
 /**
  * Base class that represents a row from the 'quote' table.
@@ -69,25 +70,29 @@ abstract class Quote implements ActiveRecordInterface
 
     /**
      * The value for the id field.
+     *
      * @var        int
      */
     protected $id;
 
     /**
      * The value for the title field.
+     *
      * @var        string
      */
     protected $title;
 
     /**
      * The value for the quote field.
+     *
      * @var        string
      */
     protected $quote;
 
     /**
      * The value for the published field.
-     * @var        \DateTime
+     *
+     * @var        DateTime
      */
     protected $published;
 
@@ -341,7 +346,15 @@ abstract class Quote implements ActiveRecordInterface
     {
         $this->clearAllReferences();
 
-        return array_keys(get_object_vars($this));
+        $cls = new \ReflectionClass($this);
+        $propertyNames = [];
+        $serializableProperties = array_diff($cls->getProperties(), $cls->getProperties(\ReflectionProperty::IS_STATIC));
+
+        foreach($serializableProperties as $property) {
+            $propertyNames[] = $property->getName();
+        }
+
+        return $propertyNames;
     }
 
     /**
@@ -390,7 +403,7 @@ abstract class Quote implements ActiveRecordInterface
         if ($format === null) {
             return $this->published;
         } else {
-            return $this->published instanceof \DateTime ? $this->published->format($format) : null;
+            return $this->published instanceof \DateTimeInterface ? $this->published->format($format) : null;
         }
     }
 
@@ -457,7 +470,7 @@ abstract class Quote implements ActiveRecordInterface
     /**
      * Sets the value of [published] column to a normalized version of the date/time value specified.
      *
-     * @param  mixed $v string, integer (timestamp), or \DateTime value.
+     * @param  mixed $v string, integer (timestamp), or \DateTimeInterface value.
      *               Empty strings are treated as NULL.
      * @return $this|\Quote\Quote The current object (for fluent API support)
      */
@@ -654,8 +667,8 @@ abstract class Quote implements ActiveRecordInterface
         }
 
         return $con->transaction(function () use ($con) {
-            $isInsert = $this->isNew();
             $ret = $this->preSave($con);
+            $isInsert = $this->isNew();
             if ($isInsert) {
                 $ret = $ret && $this->preInsert($con);
             } else {
@@ -922,12 +935,8 @@ abstract class Quote implements ActiveRecordInterface
             $keys[2] => $this->getQuote(),
             $keys[3] => $this->getPublished(),
         );
-
-        $utc = new \DateTimeZone('utc');
         if ($result[$keys[3]] instanceof \DateTime) {
-            // When changing timezone we don't want to change existing instances
-            $dateTime = clone $result[$keys[3]];
-            $result[$keys[3]] = $dateTime->setTimezone($utc)->format('Y-m-d\TH:i:s\Z');
+            $result[$keys[3]] = $result[$keys[3]]->format('c');
         }
 
         $virtualColumns = $this->virtualColumns;
@@ -1274,7 +1283,10 @@ abstract class Quote implements ActiveRecordInterface
         if (null !== $this->collQuoteTags && !$overrideExisting) {
             return;
         }
-        $this->collQuoteTags = new ObjectCollection();
+
+        $collectionClassName = QuoteTagTableMap::getTableMap()->getCollectionClassName();
+
+        $this->collQuoteTags = new $collectionClassName;
         $this->collQuoteTags->setModel('\Quote\QuoteTag');
     }
 
@@ -1422,6 +1434,10 @@ abstract class Quote implements ActiveRecordInterface
 
         if (!$this->collQuoteTags->contains($l)) {
             $this->doAddQuoteTag($l);
+
+            if ($this->quoteTagsScheduledForDeletion and $this->quoteTagsScheduledForDeletion->contains($l)) {
+                $this->quoteTagsScheduledForDeletion->remove($this->quoteTagsScheduledForDeletion->search($l));
+            }
         }
 
         return $this;
@@ -1506,9 +1522,10 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function initTags()
     {
-        $this->collTags = new ObjectCollection();
-        $this->collTagsPartial = true;
+        $collectionClassName = QuoteTagTableMap::getTableMap()->getCollectionClassName();
 
+        $this->collTags = new $collectionClassName;
+        $this->collTagsPartial = true;
         $this->collTags->setModel('\Quote\Tag');
     }
 
@@ -1785,6 +1802,9 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function preSave(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preSave')) {
+            return parent::preSave($con);
+        }
         return true;
     }
 
@@ -1794,7 +1814,9 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function postSave(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postSave')) {
+            parent::postSave($con);
+        }
     }
 
     /**
@@ -1804,6 +1826,9 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function preInsert(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preInsert')) {
+            return parent::preInsert($con);
+        }
         return true;
     }
 
@@ -1813,7 +1838,9 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function postInsert(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postInsert')) {
+            parent::postInsert($con);
+        }
     }
 
     /**
@@ -1823,6 +1850,9 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function preUpdate(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preUpdate')) {
+            return parent::preUpdate($con);
+        }
         return true;
     }
 
@@ -1832,7 +1862,9 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function postUpdate(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postUpdate')) {
+            parent::postUpdate($con);
+        }
     }
 
     /**
@@ -1842,6 +1874,9 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function preDelete(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preDelete')) {
+            return parent::preDelete($con);
+        }
         return true;
     }
 
@@ -1851,7 +1886,9 @@ abstract class Quote implements ActiveRecordInterface
      */
     public function postDelete(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postDelete')) {
+            parent::postDelete($con);
+        }
     }
 
 

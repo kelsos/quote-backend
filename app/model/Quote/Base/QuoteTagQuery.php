@@ -30,13 +30,29 @@ use Quote\Map\QuoteTagTableMap;
  * @method     ChildQuoteTagQuery rightJoin($relation) Adds a RIGHT JOIN clause to the query
  * @method     ChildQuoteTagQuery innerJoin($relation) Adds a INNER JOIN clause to the query
  *
+ * @method     ChildQuoteTagQuery leftJoinWith($relation) Adds a LEFT JOIN clause and with to the query
+ * @method     ChildQuoteTagQuery rightJoinWith($relation) Adds a RIGHT JOIN clause and with to the query
+ * @method     ChildQuoteTagQuery innerJoinWith($relation) Adds a INNER JOIN clause and with to the query
+ *
  * @method     ChildQuoteTagQuery leftJoinTag($relationAlias = null) Adds a LEFT JOIN clause to the query using the Tag relation
  * @method     ChildQuoteTagQuery rightJoinTag($relationAlias = null) Adds a RIGHT JOIN clause to the query using the Tag relation
  * @method     ChildQuoteTagQuery innerJoinTag($relationAlias = null) Adds a INNER JOIN clause to the query using the Tag relation
  *
+ * @method     ChildQuoteTagQuery joinWithTag($joinType = Criteria::INNER_JOIN) Adds a join clause and with to the query using the Tag relation
+ *
+ * @method     ChildQuoteTagQuery leftJoinWithTag() Adds a LEFT JOIN clause and with to the query using the Tag relation
+ * @method     ChildQuoteTagQuery rightJoinWithTag() Adds a RIGHT JOIN clause and with to the query using the Tag relation
+ * @method     ChildQuoteTagQuery innerJoinWithTag() Adds a INNER JOIN clause and with to the query using the Tag relation
+ *
  * @method     ChildQuoteTagQuery leftJoinQuote($relationAlias = null) Adds a LEFT JOIN clause to the query using the Quote relation
  * @method     ChildQuoteTagQuery rightJoinQuote($relationAlias = null) Adds a RIGHT JOIN clause to the query using the Quote relation
  * @method     ChildQuoteTagQuery innerJoinQuote($relationAlias = null) Adds a INNER JOIN clause to the query using the Quote relation
+ *
+ * @method     ChildQuoteTagQuery joinWithQuote($joinType = Criteria::INNER_JOIN) Adds a join clause and with to the query using the Quote relation
+ *
+ * @method     ChildQuoteTagQuery leftJoinWithQuote() Adds a LEFT JOIN clause and with to the query using the Quote relation
+ * @method     ChildQuoteTagQuery rightJoinWithQuote() Adds a RIGHT JOIN clause and with to the query using the Quote relation
+ * @method     ChildQuoteTagQuery innerJoinWithQuote() Adds a INNER JOIN clause and with to the query using the Quote relation
  *
  * @method     \Quote\TagQuery|\Quote\QuoteQuery endUse() Finalizes a secondary criteria and merges it with its primary Criteria
  *
@@ -117,21 +133,27 @@ abstract class QuoteTagQuery extends ModelCriteria
         if ($key === null) {
             return null;
         }
-        if ((null !== ($obj = QuoteTagTableMap::getInstanceFromPool(serialize(array((string) $key[0], (string) $key[1]))))) && !$this->formatter) {
-            // the object is already in the instance pool
-            return $obj;
-        }
+
         if ($con === null) {
             $con = Propel::getServiceContainer()->getReadConnection(QuoteTagTableMap::DATABASE_NAME);
         }
+
         $this->basePreSelect($con);
-        if ($this->formatter || $this->modelAlias || $this->with || $this->select
-         || $this->selectColumns || $this->asColumns || $this->selectModifiers
-         || $this->map || $this->having || $this->joins) {
+
+        if (
+            $this->formatter || $this->modelAlias || $this->with || $this->select
+            || $this->selectColumns || $this->asColumns || $this->selectModifiers
+            || $this->map || $this->having || $this->joins
+        ) {
             return $this->findPkComplex($key, $con);
-        } else {
-            return $this->findPkSimple($key, $con);
         }
+
+        if ((null !== ($obj = QuoteTagTableMap::getInstanceFromPool(serialize([(null === $key[0] || is_scalar($key[0]) || is_callable([$key[0], '__toString']) ? (string) $key[0] : $key[0]), (null === $key[1] || is_scalar($key[1]) || is_callable([$key[1], '__toString']) ? (string) $key[1] : $key[1])]))))) {
+            // the object is already in the instance pool
+            return $obj;
+        }
+
+        return $this->findPkSimple($key, $con);
     }
 
     /**
@@ -162,7 +184,7 @@ abstract class QuoteTagQuery extends ModelCriteria
             /** @var ChildQuoteTag $obj */
             $obj = new ChildQuoteTag();
             $obj->hydrate($row);
-            QuoteTagTableMap::addInstanceToPool($obj, serialize(array((string) $key[0], (string) $key[1])));
+            QuoteTagTableMap::addInstanceToPool($obj, serialize([(null === $key[0] || is_scalar($key[0]) || is_callable([$key[0], '__toString']) ? (string) $key[0] : $key[0]), (null === $key[1] || is_scalar($key[1]) || is_callable([$key[1], '__toString']) ? (string) $key[1] : $key[1])]));
         }
         $stmt->closeCursor();
 

@@ -30,9 +30,19 @@ use Quote\Map\TagTableMap;
  * @method     ChildTagQuery rightJoin($relation) Adds a RIGHT JOIN clause to the query
  * @method     ChildTagQuery innerJoin($relation) Adds a INNER JOIN clause to the query
  *
+ * @method     ChildTagQuery leftJoinWith($relation) Adds a LEFT JOIN clause and with to the query
+ * @method     ChildTagQuery rightJoinWith($relation) Adds a RIGHT JOIN clause and with to the query
+ * @method     ChildTagQuery innerJoinWith($relation) Adds a INNER JOIN clause and with to the query
+ *
  * @method     ChildTagQuery leftJoinQuoteTag($relationAlias = null) Adds a LEFT JOIN clause to the query using the QuoteTag relation
  * @method     ChildTagQuery rightJoinQuoteTag($relationAlias = null) Adds a RIGHT JOIN clause to the query using the QuoteTag relation
  * @method     ChildTagQuery innerJoinQuoteTag($relationAlias = null) Adds a INNER JOIN clause to the query using the QuoteTag relation
+ *
+ * @method     ChildTagQuery joinWithQuoteTag($joinType = Criteria::INNER_JOIN) Adds a join clause and with to the query using the QuoteTag relation
+ *
+ * @method     ChildTagQuery leftJoinWithQuoteTag() Adds a LEFT JOIN clause and with to the query using the QuoteTag relation
+ * @method     ChildTagQuery rightJoinWithQuoteTag() Adds a RIGHT JOIN clause and with to the query using the QuoteTag relation
+ * @method     ChildTagQuery innerJoinWithQuoteTag() Adds a INNER JOIN clause and with to the query using the QuoteTag relation
  *
  * @method     \Quote\QuoteTagQuery endUse() Finalizes a secondary criteria and merges it with its primary Criteria
  *
@@ -113,21 +123,27 @@ abstract class TagQuery extends ModelCriteria
         if ($key === null) {
             return null;
         }
-        if ((null !== ($obj = TagTableMap::getInstanceFromPool((string) $key))) && !$this->formatter) {
-            // the object is already in the instance pool
-            return $obj;
-        }
+
         if ($con === null) {
             $con = Propel::getServiceContainer()->getReadConnection(TagTableMap::DATABASE_NAME);
         }
+
         $this->basePreSelect($con);
-        if ($this->formatter || $this->modelAlias || $this->with || $this->select
-         || $this->selectColumns || $this->asColumns || $this->selectModifiers
-         || $this->map || $this->having || $this->joins) {
+
+        if (
+            $this->formatter || $this->modelAlias || $this->with || $this->select
+            || $this->selectColumns || $this->asColumns || $this->selectModifiers
+            || $this->map || $this->having || $this->joins
+        ) {
             return $this->findPkComplex($key, $con);
-        } else {
-            return $this->findPkSimple($key, $con);
         }
+
+        if ((null !== ($obj = TagTableMap::getInstanceFromPool(null === $key || is_scalar($key) || is_callable([$key, '__toString']) ? (string) $key : $key)))) {
+            // the object is already in the instance pool
+            return $obj;
+        }
+
+        return $this->findPkSimple($key, $con);
     }
 
     /**
@@ -157,7 +173,7 @@ abstract class TagQuery extends ModelCriteria
             /** @var ChildTag $obj */
             $obj = new ChildTag();
             $obj->hydrate($row);
-            TagTableMap::addInstanceToPool($obj, (string) $key);
+            TagTableMap::addInstanceToPool($obj, null === $key || is_scalar($key) || is_callable([$key, '__toString']) ? (string) $key : $key);
         }
         $stmt->closeCursor();
 

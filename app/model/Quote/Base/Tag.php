@@ -22,6 +22,7 @@ use Quote\QuoteTag as ChildQuoteTag;
 use Quote\QuoteTagQuery as ChildQuoteTagQuery;
 use Quote\Tag as ChildTag;
 use Quote\TagQuery as ChildTagQuery;
+use Quote\Map\QuoteTagTableMap;
 use Quote\Map\TagTableMap;
 
 /**
@@ -67,12 +68,14 @@ abstract class Tag implements ActiveRecordInterface
 
     /**
      * The value for the id field.
+     *
      * @var        int
      */
     protected $id;
 
     /**
      * The value for the name field.
+     *
      * @var        string
      */
     protected $name;
@@ -327,7 +330,15 @@ abstract class Tag implements ActiveRecordInterface
     {
         $this->clearAllReferences();
 
-        return array_keys(get_object_vars($this));
+        $cls = new \ReflectionClass($this);
+        $propertyNames = [];
+        $serializableProperties = array_diff($cls->getProperties(), $cls->getProperties(\ReflectionProperty::IS_STATIC));
+
+        foreach($serializableProperties as $property) {
+            $propertyNames[] = $property->getName();
+        }
+
+        return $propertyNames;
     }
 
     /**
@@ -561,8 +572,8 @@ abstract class Tag implements ActiveRecordInterface
         }
 
         return $con->transaction(function () use ($con) {
-            $isInsert = $this->isNew();
             $ret = $this->preSave($con);
+            $isInsert = $this->isNew();
             if ($isInsert) {
                 $ret = $ret && $this->preInsert($con);
             } else {
@@ -1133,7 +1144,10 @@ abstract class Tag implements ActiveRecordInterface
         if (null !== $this->collQuoteTags && !$overrideExisting) {
             return;
         }
-        $this->collQuoteTags = new ObjectCollection();
+
+        $collectionClassName = QuoteTagTableMap::getTableMap()->getCollectionClassName();
+
+        $this->collQuoteTags = new $collectionClassName;
         $this->collQuoteTags->setModel('\Quote\QuoteTag');
     }
 
@@ -1281,6 +1295,10 @@ abstract class Tag implements ActiveRecordInterface
 
         if (!$this->collQuoteTags->contains($l)) {
             $this->doAddQuoteTag($l);
+
+            if ($this->quoteTagsScheduledForDeletion and $this->quoteTagsScheduledForDeletion->contains($l)) {
+                $this->quoteTagsScheduledForDeletion->remove($this->quoteTagsScheduledForDeletion->search($l));
+            }
         }
 
         return $this;
@@ -1365,9 +1383,10 @@ abstract class Tag implements ActiveRecordInterface
      */
     public function initQuotes()
     {
-        $this->collQuotes = new ObjectCollection();
-        $this->collQuotesPartial = true;
+        $collectionClassName = QuoteTagTableMap::getTableMap()->getCollectionClassName();
 
+        $this->collQuotes = new $collectionClassName;
+        $this->collQuotesPartial = true;
         $this->collQuotes->setModel('\Quote\Quote');
     }
 
@@ -1642,6 +1661,9 @@ abstract class Tag implements ActiveRecordInterface
      */
     public function preSave(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preSave')) {
+            return parent::preSave($con);
+        }
         return true;
     }
 
@@ -1651,7 +1673,9 @@ abstract class Tag implements ActiveRecordInterface
      */
     public function postSave(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postSave')) {
+            parent::postSave($con);
+        }
     }
 
     /**
@@ -1661,6 +1685,9 @@ abstract class Tag implements ActiveRecordInterface
      */
     public function preInsert(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preInsert')) {
+            return parent::preInsert($con);
+        }
         return true;
     }
 
@@ -1670,7 +1697,9 @@ abstract class Tag implements ActiveRecordInterface
      */
     public function postInsert(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postInsert')) {
+            parent::postInsert($con);
+        }
     }
 
     /**
@@ -1680,6 +1709,9 @@ abstract class Tag implements ActiveRecordInterface
      */
     public function preUpdate(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preUpdate')) {
+            return parent::preUpdate($con);
+        }
         return true;
     }
 
@@ -1689,7 +1721,9 @@ abstract class Tag implements ActiveRecordInterface
      */
     public function postUpdate(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postUpdate')) {
+            parent::postUpdate($con);
+        }
     }
 
     /**
@@ -1699,6 +1733,9 @@ abstract class Tag implements ActiveRecordInterface
      */
     public function preDelete(ConnectionInterface $con = null)
     {
+        if (is_callable('parent::preDelete')) {
+            return parent::preDelete($con);
+        }
         return true;
     }
 
@@ -1708,7 +1745,9 @@ abstract class Tag implements ActiveRecordInterface
      */
     public function postDelete(ConnectionInterface $con = null)
     {
-
+        if (is_callable('parent::postDelete')) {
+            parent::postDelete($con);
+        }
     }
 
 

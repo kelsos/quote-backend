@@ -8,171 +8,178 @@ use Symfony\Component\Yaml\Yaml;
 class StateManager
 {
 
-  private static $instance;
-  private $secret;
-  private $mail;
-  private $environment;
-  private $tokenData;
-  private $smtpUsername;
-  private $smtpPassword;
-  private $smtpHostname;
-  private $smtpPort;
-  private $domain;
-  private $adminMail;
+    private static $instance;
+    private $secret;
+    private $mail;
+    private $environment;
+    private $tokenData;
+    private $smtpUsername;
+    private $smtpPassword;
+    private $smtpHostname;
+    private $smtpPort;
+    private $domain;
+    private $adminMail;
+    private $authClientId;
 
-  /**
-   * Protected constructor to prevent creating a new instance of the
-   * *Singleton* via the `new` operator from outside of this class.
-   */
-  protected function __construct()
-  {
-    $config = Yaml::parse(file_get_contents("../config.yaml"));
-    $this->secret = $config['secret'];
-    $this->mail = $config['mail'];
-    $this->environment = $config['environment'];
-    $this->smtpHostname = $config['smtp_server'];
-    $this->smtpPort = $config['smtp_port'];
-    $this->smtpUsername = $config['smtp_username'];
-    $this->smtpPassword = $config['smtp_password'];
-    $this->domain = $config['domain'];
-    $this->adminMail = $config['admin_mail'];
+    /**
+     * Protected constructor to prevent creating a new instance of the
+     * *Singleton* via the `new` operator from outside of this class.
+     */
+    protected function __construct()
+    {
+        $config = Yaml::parse(file_get_contents("../config.yaml"));
+        $this->secret = $config['secret'];
+        $this->mail = $config['mail'];
+        $this->environment = $config['environment'];
+        $this->smtpHostname = $config['smtp_server'];
+        $this->smtpPort = $config['smtp_port'];
+        $this->smtpUsername = $config['smtp_username'];
+        $this->smtpPassword = $config['smtp_password'];
+        $this->domain = $config['domain'];
+        $this->adminMail = $config['admin_mail'];
+        $this->authClientId = $config['oauth_client_id'];
 
-  }
-
-  /**
-   * Gives access to the single instance of {@link StateManager}
-   * @return StateManager
-   */
-  public static function getInstance()
-  {
-    if (null == static::$instance) {
-      static::$instance = new static();
     }
 
-    return static::$instance;
-  }
+    /**
+     * Gives access to the single instance of {@link StateManager}
+     * @return StateManager
+     */
+    public static function getInstance()
+    {
+        if (null == static::$instance) {
+            static::$instance = new static();
+        }
 
-  /**
-   * @return mixed
-   */
-  public function getTokenData()
-  {
-    return $this->tokenData;
-  }
+        return static::$instance;
+    }
 
-  /**
-   * Sets the validated token data
-   * @param mixed $tokenData
-   */
-  public function setTokenData($tokenData)
-  {
-    $this->tokenData = $tokenData;
-  }
+    /**
+     * @return mixed
+     */
+    public function getTokenData()
+    {
+        return $this->tokenData;
+    }
 
-  /**
-   * @return String
-   */
-  public function getSecret()
-  {
-    return $this->secret;
-  }
+    /**
+     * Sets the validated token data
+     * @param mixed $tokenData
+     */
+    public function setTokenData($tokenData)
+    {
+        $this->tokenData = $tokenData;
+    }
 
-  /**
-   * @return String
-   */
-  public function getMail()
-  {
-    return $this->mail;
-  }
+    /**
+     * @return String
+     */
+    public function getSecret()
+    {
+        return $this->secret;
+    }
 
-  /**
-   * @return String
-   */
-  public function getEnvironment()
-  {
-    return $this->environment;
-  }
+    /**
+     * @return String
+     */
+    public function getMail()
+    {
+        return $this->mail;
+    }
 
-  /**
-   * The method will return true when the configuration points on development
-   * @return bool
-   */
-  public function isDevelopment()
-  {
-    return strcmp($this->environment, 'development') !== false;
-  }
+    /**
+     * @return String
+     */
+    public function getEnvironment()
+    {
+        return $this->environment;
+    }
 
-  /**
-   * Returns the username of the user on the smtp server used to send e-mails
-   * @return String
-   */
-  public function getSmtpUsername()
-  {
-    return $this->smtpUsername;
-  }
+    /**
+     * The method will return true when the configuration points on development
+     * @return bool
+     */
+    public function isDevelopment()
+    {
+        return strcmp($this->environment, 'development') !== false;
+    }
 
-  /**
-   * @return String
-   */
-  public function getSmtpPassword()
-  {
-    return $this->smtpPassword;
-  }
+    /**
+     * Returns the username of the user on the smtp server used to send e-mails
+     * @return String
+     */
+    public function getSmtpUsername()
+    {
+        return $this->smtpUsername;
+    }
 
-  /**
-   * @return String
-   */
-  public function getSmtpHostname()
-  {
-    return $this->smtpHostname;
-  }
+    /**
+     * @return String
+     */
+    public function getSmtpPassword()
+    {
+        return $this->smtpPassword;
+    }
 
-  /**
-   * @return int
-   */
-  public function getSmtpPort()
-  {
-    return $this->smtpPort;
-  }
+    /**
+     * @return String
+     */
+    public function getSmtpHostname()
+    {
+        return $this->smtpHostname;
+    }
 
-  public function getDomain()
-  {
-    return $this->domain;
-  }
+    /**
+     * @return int
+     */
+    public function getSmtpPort()
+    {
+        return $this->smtpPort;
+    }
 
-  /**
-   * @return mixed
-   */
-  public function getAdminMail()
-  {
-    return $this->adminMail;
-  }
+    public function getDomain()
+    {
+        return $this->domain;
+    }
 
-  /**
-   * @param mixed $adminMail
-   */
-  public function setAdminMail($adminMail)
-  {
-    $this->adminMail = $adminMail;
-  }
+    /**
+     * @return mixed
+     */
+    public function getAdminMail()
+    {
+        return $this->adminMail;
+    }
 
-  /**
-   * Private clone method to prevent cloning of the instance of the
-   * *Singleton* instance.
-   *
-   * @return void
-   */
-  private function __clone()
-  {
-  }
+    /**
+     * @param mixed $adminMail
+     */
+    public function setAdminMail($adminMail)
+    {
+        $this->adminMail = $adminMail;
+    }
 
-  /**
-   * Private unserialize method to prevent unserializing of the *Singleton*
-   * instance.
-   *
-   * @return void
-   */
-  private function __wakeup()
-  {
-  }
+    public function getOauthClientId()
+    {
+        return $this->authClientId;
+    }
+
+    /**
+     * Private clone method to prevent cloning of the instance of the
+     * *Singleton* instance.
+     *
+     * @return void
+     */
+    private function __clone()
+    {
+    }
+
+    /**
+     * Private unserialize method to prevent unserializing of the *Singleton*
+     * instance.
+     *
+     * @return void
+     */
+    private function __wakeup()
+    {
+    }
 }

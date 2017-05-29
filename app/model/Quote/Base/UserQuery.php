@@ -23,6 +23,7 @@ use Quote\Map\UserTableMap;
  * @method     ChildUserQuery orderById($order = Criteria::ASC) Order by the id column
  * @method     ChildUserQuery orderByUsername($order = Criteria::ASC) Order by the username column
  * @method     ChildUserQuery orderByPassword($order = Criteria::ASC) Order by the password column
+ * @method     ChildUserQuery orderByOauthUserId($order = Criteria::ASC) Order by the oauth_user_id column
  * @method     ChildUserQuery orderByApproved($order = Criteria::ASC) Order by the approved column
  * @method     ChildUserQuery orderByConfirmed($order = Criteria::ASC) Order by the confirmed column
  * @method     ChildUserQuery orderByAdmin($order = Criteria::ASC) Order by the admin column
@@ -30,6 +31,7 @@ use Quote\Map\UserTableMap;
  * @method     ChildUserQuery groupById() Group by the id column
  * @method     ChildUserQuery groupByUsername() Group by the username column
  * @method     ChildUserQuery groupByPassword() Group by the password column
+ * @method     ChildUserQuery groupByOauthUserId() Group by the oauth_user_id column
  * @method     ChildUserQuery groupByApproved() Group by the approved column
  * @method     ChildUserQuery groupByConfirmed() Group by the confirmed column
  * @method     ChildUserQuery groupByAdmin() Group by the admin column
@@ -38,9 +40,19 @@ use Quote\Map\UserTableMap;
  * @method     ChildUserQuery rightJoin($relation) Adds a RIGHT JOIN clause to the query
  * @method     ChildUserQuery innerJoin($relation) Adds a INNER JOIN clause to the query
  *
+ * @method     ChildUserQuery leftJoinWith($relation) Adds a LEFT JOIN clause and with to the query
+ * @method     ChildUserQuery rightJoinWith($relation) Adds a RIGHT JOIN clause and with to the query
+ * @method     ChildUserQuery innerJoinWith($relation) Adds a INNER JOIN clause and with to the query
+ *
  * @method     ChildUserQuery leftJoinConfirmation($relationAlias = null) Adds a LEFT JOIN clause to the query using the Confirmation relation
  * @method     ChildUserQuery rightJoinConfirmation($relationAlias = null) Adds a RIGHT JOIN clause to the query using the Confirmation relation
  * @method     ChildUserQuery innerJoinConfirmation($relationAlias = null) Adds a INNER JOIN clause to the query using the Confirmation relation
+ *
+ * @method     ChildUserQuery joinWithConfirmation($joinType = Criteria::INNER_JOIN) Adds a join clause and with to the query using the Confirmation relation
+ *
+ * @method     ChildUserQuery leftJoinWithConfirmation() Adds a LEFT JOIN clause and with to the query using the Confirmation relation
+ * @method     ChildUserQuery rightJoinWithConfirmation() Adds a RIGHT JOIN clause and with to the query using the Confirmation relation
+ * @method     ChildUserQuery innerJoinWithConfirmation() Adds a INNER JOIN clause and with to the query using the Confirmation relation
  *
  * @method     \Quote\ConfirmationQuery endUse() Finalizes a secondary criteria and merges it with its primary Criteria
  *
@@ -50,6 +62,7 @@ use Quote\Map\UserTableMap;
  * @method     ChildUser findOneById(int $id) Return the first ChildUser filtered by the id column
  * @method     ChildUser findOneByUsername(string $username) Return the first ChildUser filtered by the username column
  * @method     ChildUser findOneByPassword(string $password) Return the first ChildUser filtered by the password column
+ * @method     ChildUser findOneByOauthUserId(string $oauth_user_id) Return the first ChildUser filtered by the oauth_user_id column
  * @method     ChildUser findOneByApproved(boolean $approved) Return the first ChildUser filtered by the approved column
  * @method     ChildUser findOneByConfirmed(boolean $confirmed) Return the first ChildUser filtered by the confirmed column
  * @method     ChildUser findOneByAdmin(boolean $admin) Return the first ChildUser filtered by the admin column *
@@ -60,6 +73,7 @@ use Quote\Map\UserTableMap;
  * @method     ChildUser requireOneById(int $id) Return the first ChildUser filtered by the id column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  * @method     ChildUser requireOneByUsername(string $username) Return the first ChildUser filtered by the username column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  * @method     ChildUser requireOneByPassword(string $password) Return the first ChildUser filtered by the password column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
+ * @method     ChildUser requireOneByOauthUserId(string $oauth_user_id) Return the first ChildUser filtered by the oauth_user_id column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  * @method     ChildUser requireOneByApproved(boolean $approved) Return the first ChildUser filtered by the approved column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  * @method     ChildUser requireOneByConfirmed(boolean $confirmed) Return the first ChildUser filtered by the confirmed column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  * @method     ChildUser requireOneByAdmin(boolean $admin) Return the first ChildUser filtered by the admin column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
@@ -68,6 +82,7 @@ use Quote\Map\UserTableMap;
  * @method     ChildUser[]|ObjectCollection findById(int $id) Return ChildUser objects filtered by the id column
  * @method     ChildUser[]|ObjectCollection findByUsername(string $username) Return ChildUser objects filtered by the username column
  * @method     ChildUser[]|ObjectCollection findByPassword(string $password) Return ChildUser objects filtered by the password column
+ * @method     ChildUser[]|ObjectCollection findByOauthUserId(string $oauth_user_id) Return ChildUser objects filtered by the oauth_user_id column
  * @method     ChildUser[]|ObjectCollection findByApproved(boolean $approved) Return ChildUser objects filtered by the approved column
  * @method     ChildUser[]|ObjectCollection findByConfirmed(boolean $confirmed) Return ChildUser objects filtered by the confirmed column
  * @method     ChildUser[]|ObjectCollection findByAdmin(boolean $admin) Return ChildUser objects filtered by the admin column
@@ -133,21 +148,27 @@ abstract class UserQuery extends ModelCriteria
         if ($key === null) {
             return null;
         }
-        if ((null !== ($obj = UserTableMap::getInstanceFromPool((string) $key))) && !$this->formatter) {
-            // the object is already in the instance pool
-            return $obj;
-        }
+
         if ($con === null) {
             $con = Propel::getServiceContainer()->getReadConnection(UserTableMap::DATABASE_NAME);
         }
+
         $this->basePreSelect($con);
-        if ($this->formatter || $this->modelAlias || $this->with || $this->select
-         || $this->selectColumns || $this->asColumns || $this->selectModifiers
-         || $this->map || $this->having || $this->joins) {
+
+        if (
+            $this->formatter || $this->modelAlias || $this->with || $this->select
+            || $this->selectColumns || $this->asColumns || $this->selectModifiers
+            || $this->map || $this->having || $this->joins
+        ) {
             return $this->findPkComplex($key, $con);
-        } else {
-            return $this->findPkSimple($key, $con);
         }
+
+        if ((null !== ($obj = UserTableMap::getInstanceFromPool(null === $key || is_scalar($key) || is_callable([$key, '__toString']) ? (string) $key : $key)))) {
+            // the object is already in the instance pool
+            return $obj;
+        }
+
+        return $this->findPkSimple($key, $con);
     }
 
     /**
@@ -163,7 +184,7 @@ abstract class UserQuery extends ModelCriteria
      */
     protected function findPkSimple($key, ConnectionInterface $con)
     {
-        $sql = 'SELECT id, username, password, approved, confirmed, admin FROM user WHERE id = :p0';
+        $sql = 'SELECT id, username, password, oauth_user_id, approved, confirmed, admin FROM user WHERE id = :p0';
         try {
             $stmt = $con->prepare($sql);
             $stmt->bindValue(':p0', $key, PDO::PARAM_INT);
@@ -177,7 +198,7 @@ abstract class UserQuery extends ModelCriteria
             /** @var ChildUser $obj */
             $obj = new ChildUser();
             $obj->hydrate($row);
-            UserTableMap::addInstanceToPool($obj, (string) $key);
+            UserTableMap::addInstanceToPool($obj, null === $key || is_scalar($key) || is_callable([$key, '__toString']) ? (string) $key : $key);
         }
         $stmt->closeCursor();
 
@@ -350,6 +371,35 @@ abstract class UserQuery extends ModelCriteria
         }
 
         return $this->addUsingAlias(UserTableMap::COL_PASSWORD, $password, $comparison);
+    }
+
+    /**
+     * Filter the query on the oauth_user_id column
+     *
+     * Example usage:
+     * <code>
+     * $query->filterByOauthUserId('fooValue');   // WHERE oauth_user_id = 'fooValue'
+     * $query->filterByOauthUserId('%fooValue%'); // WHERE oauth_user_id LIKE '%fooValue%'
+     * </code>
+     *
+     * @param     string $oauthUserId The value to use as filter.
+     *              Accepts wildcards (* and % trigger a LIKE)
+     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return $this|ChildUserQuery The current query, for fluid interface
+     */
+    public function filterByOauthUserId($oauthUserId = null, $comparison = null)
+    {
+        if (null === $comparison) {
+            if (is_array($oauthUserId)) {
+                $comparison = Criteria::IN;
+            } elseif (preg_match('/[\%\*]/', $oauthUserId)) {
+                $oauthUserId = str_replace('*', '%', $oauthUserId);
+                $comparison = Criteria::LIKE;
+            }
+        }
+
+        return $this->addUsingAlias(UserTableMap::COL_OAUTH_USER_ID, $oauthUserId, $comparison);
     }
 
     /**
